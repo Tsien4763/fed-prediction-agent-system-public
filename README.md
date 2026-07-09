@@ -46,7 +46,7 @@ FRED macro sample, and local GRPO result card.
 | --- | --- |
 | LangChain runtime | `agents.langchain_runtime` runs a five-agent `Runnable` sequence over concrete facade Agent classes |
 | Static checks | CI runs `ruff check src scripts tests` for high-signal Python errors |
-| Unit tests | 34 passing tests plus 1 optional Torch/TFT shape test, covering source monitoring, event buses, realtime closed loop, concrete Agent classes, strict LLM semantic mode, persona/game contracts, rewards, temporal splits, forecasting metrics, calibration buckets, VAR/VECM smoke checks, semantic scoring, leakage guards, event-triggered five-cluster counterfactuals, macro-sensitive rule fallback, public result artifacts, and LangChain orchestration |
+| Unit tests | 38 passing tests plus 1 optional Torch/TFT shape test, covering source monitoring, event buses, realtime closed loop, concrete Agent classes, strict DeepSeek semantic mode, TF-IDF policy-context filtering, persona/game contracts, rewards, temporal splits, forecasting metrics, calibration buckets, VAR/VECM smoke checks, semantic scoring, leakage guards, event-triggered five-cluster counterfactuals, strict DeepSeek self-play contracts, public result artifacts, and LangChain orchestration |
 | Hardening smoke | `scripts/smoke_hardening.py` passes without network access or model weights |
 | Realtime smoke | `scripts/smoke_realtime_pipeline.py` verifies `publish -> poll -> RollingPredictor -> risk_attribution -> ack` for file, memory, Redis adapter, and Kafka adapter, plus an event-triggered five-cluster counterfactual stress test |
 
@@ -102,22 +102,24 @@ Redis/Kafka clients, a fake DeepSeek teacher, and a real LangChain Runnable
 sequence so public verification does not need network access, API keys, or
 model weights.
 
-Semantic extraction has two explicit modes. Public tests use a deterministic
-keyword scorer so the repo is runnable offline. Teacher/production runs can
-fail closed instead of falling back by setting `semantic_require_llm=true` in
-the LangChain runtime input or `MAE_CPS_REQUIRE_LLM_SEMANTICS=1` in the
-environment. In that mode a missing or failing DeepSeek key raises an error.
+Semantic extraction is fail-closed. The runtime first uses a deterministic
+TF-IDF policy-context filter to select the most relevant FOMC/policy excerpts
+from long documents, then sends only those excerpts to DeepSeek for structured
+hawkish-dovish scoring. There is no local semantic scoring fallback: a missing
+or failing DeepSeek key raises an error. Public tests use a fake DeepSeek
+client, so CI stays offline without weakening the production contract.
 
 The LangChain runtime is installed through the agent extra:
 
 ```powershell
 uv sync --extra agent
 $env:PYTHONPATH = "src"
+$env:DEEPSEEK_API_KEY = "<your-key>"
 uv run --extra agent python -m agents.langchain_runtime
 ```
 
-DeepSeek can also be used inside self-play as the role payoff judge and
-equilibrium auditor:
+DeepSeek is required inside self-play as the role strategy generator, payoff
+judge, and equilibrium auditor:
 
 ```powershell
 python -m fed_game.cli self-play `
@@ -127,17 +129,16 @@ python -m fed_game.cli self-play `
   --teacher-model deepseek-chat
 ```
 
-With a teacher key, each LLM role proposal is scored by a second DeepSeek
-payoff-judgement call. When the cheap stability rule marks a candidate
-equilibrium, DeepSeek checks whether any role has a profitable unilateral
-deviation. Traces record `payoff_source`, `payoff_reasoning`,
-`deviation_candidate`, and `equilibrium_check`.
+Each LLM role proposal is scored by a second DeepSeek payoff-judgement call.
+When the cheap stability rule marks a candidate equilibrium, DeepSeek checks
+whether any role has a profitable unilateral deviation. Traces record
+`payoff_source`, `payoff_reasoning`, `deviation_candidate`, and
+`equilibrium_check`.
 
-`BestResponseSkill` is the no-key rule fallback for local self-play. The
-DeepSeek path is `LLMBestResponseSkill`, which asks the model for the strategy
-and then asks a second model call to judge payoff and unilateral deviations.
-Use `payoff_source` in traces to separate `deepseek_payoff_judge` from
-`rule_linear_fallback`.
+Self-play is fail-closed: `BestResponseSkill` rule mode is disabled, mock
+teacher mode is disabled, malformed LLM JSON raises, and heuristic-only
+equilibrium acceptance is not allowed. Public/offline tests use fake DeepSeek
+clients to verify the contract without weakening runtime behavior.
 
 Realtime rolling-prediction transports are optional. Public verification runs a
 closed-loop smoke over file, memory, Redis-adapter, and Kafka-adapter transports

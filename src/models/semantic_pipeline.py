@@ -11,12 +11,15 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import requests
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 from data_engineering.config import REPO_ROOT
 from data_engineering.source_monitor import PolicySourceSpec, fetch_source, incremental_fetch
@@ -56,41 +59,22 @@ def score_hawkish_dovish(
     base_url: str | None = None,
     require_llm: bool | None = None,
 ) -> dict[str, Any]:
-    """LLM-based hawkish-dovish scoring of FOMC text.
-    
-    Uses DeepSeek when a key is supplied. Public smoke tests can use the
-    deterministic keyword scorer, but production/teacher runs can set
-    require_llm=True or MAE_CPS_REQUIRE_LLM_SEMANTICS=1 to fail closed instead
-    of silently falling back.
-    """
+    """DeepSeek semantic scoring after TF-IDF policy-context selection."""
     api_key = api_key or os.environ.get("DEEPSEEK_API_KEY", "")
     base_url = base_url or os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-    if require_llm is None:
-        require_llm = os.environ.get("MAE_CPS_REQUIRE_LLM_SEMANTICS", "").strip().lower() in {
-            "1",
-            "true",
-            "yes",
-            "on",
-        }
-    if require_llm and not api_key:
+    _ = require_llm
+    if not api_key:
         raise RuntimeError("DeepSeek semantic extraction is required, but no API key was provided.")
-    
-    # Try LLM scoring
-    if api_key:
-        try:
-            return _llm_score(fomc_text, api_key, base_url)
-        except Exception as e:
-            if require_llm:
-                raise RuntimeError("DeepSeek semantic extraction failed in strict mode.") from e
-            print(f"  LLM scoring failed ({e}) - falling back to keyword-based")
-    
-    # Fallback: keyword-based (deterministic, no API needed)
-    return _keyword_score(fomc_text, meeting_date)
+    try:
+        return _llm_score(fomc_text, api_key, base_url, meeting_date=meeting_date)
+    except Exception as exc:
+        raise RuntimeError("DeepSeek semantic extraction failed; fallback is disabled.") from exc
 
 
-def _llm_score(text: str, api_key: str, base_url: str) -> dict:
-    """Call DeepSeek API for structured hawkish-dovish scoring."""
-    prompt = f"""You are a Federal Reserve policy analyst. Score the following FOMC statement on these dimensions.
+def _llm_score(text: str, api_key: str, base_url: str, meeting_date: str | None = None) -> dict[str, Any]:
+    """Call DeepSeek API after selecting policy-relevant excerpts with TF-IDF."""
+    selected = select_tfidf_policy_context(text, max_chars=6000, top_k=12)
+    prompt = f"""You are a Federal Reserve policy analyst. Score the selected FOMC/policy excerpts on these dimensions.
 
 Return ONLY a JSON object with these exact float fields (no explanation):
 
@@ -113,8 +97,13 @@ Calibration anchors:
 - "ongoing increases will be appropriate" (2022): ≈ +0.9
 - "Committee is strongly committed to returning inflation to 2 percent" (2023): ≈ +0.5
 
-FOMC Statement:
-{text[:6000]}
+Meeting date, if known: {meeting_date or "unknown"}
+
+The excerpts below were selected by a deterministic TF-IDF policy-context filter.
+Use only these excerpts and do not infer facts not present in them.
+
+Selected policy excerpts:
+{selected["selected_text"]}
 """
     
     payload = {
@@ -144,6 +133,7 @@ FOMC Statement:
     
     scores = json.loads(content.strip())
     scores["_method"] = "LLM (DeepSeek)"
+    scores["_semantic_filter"] = selected["diagnostics"]
     return scores
 
 
@@ -176,59 +166,85 @@ def _post_chat_completion(
     raise RuntimeError(f"LLM chat-completion request failed after {max_attempts} attempts") from last_error
 
 
-def _keyword_score(text: str, meeting_date: str | None = None) -> dict:
-    """Deterministic keyword-based hawkish-dovish scoring.
-    
-    Based on established central bank communication literature.
-    """
-    text_lower = text.lower()
-    
-    # Hawkish keywords
-    hawkish_terms = [
-        "vigilant", "tightening", "restrictive", "price stability",
-        "above target", "inflation remains elevated", "additional firming",
-        "further tightening", "increase", "hike", "hawk",
-        "not yet achieved", "long way to go", "persistently",
-        "unacceptably high", "strongly committed", "forceful",
-        "ongoing increases", "further rate", "additional adjustment",
+FOMC_TFIDF_CONTEXT_ANCHORS: tuple[str, ...] = (
+    "federal funds rate target range monetary policy stance committee decision",
+    "inflation remains elevated two percent objective price stability expectations",
+    "labor market maximum employment unemployment job gains wage growth",
+    "economic activity growth spending production financial conditions credit conditions",
+    "ongoing increases additional policy firming sufficiently restrictive",
+    "reduce target range rate cuts easing policy restraint",
+    "data dependent incoming information balance of risks meeting by meeting",
+    "forward guidance considerable time act as appropriate greater confidence",
+)
+
+
+def select_tfidf_policy_context(text: str, *, max_chars: int = 6000, top_k: int = 12) -> dict[str, Any]:
+    """Select policy-relevant excerpts with TF-IDF before DeepSeek scoring."""
+    normalized = _normalize_text(text)
+    sentences = _split_sentences(normalized)
+    if not sentences:
+        return {
+            "selected_text": "",
+            "diagnostics": {
+                "filter": "tfidf_policy_context",
+                "input_sentence_count": 0,
+                "selected_sentence_count": 0,
+                "top_sentences": [],
+            },
+        }
+
+    query_text = " ".join(FOMC_TFIDF_CONTEXT_ANCHORS)
+    vectorizer = TfidfVectorizer(ngram_range=(1, 3), stop_words="english", min_df=1)
+    matrix = vectorizer.fit_transform([query_text, *sentences])
+    scores = cosine_similarity(matrix[1:], matrix[0]).ravel()
+    ranked = sorted(enumerate(scores), key=lambda item: (float(item[1]), -item[0]), reverse=True)
+
+    selected_indices: list[int] = []
+    total_chars = 0
+    for index, score in ranked[: max(top_k, 1)]:
+        sentence = sentences[index]
+        if total_chars and total_chars + len(sentence) + 1 > max_chars:
+            continue
+        selected_indices.append(index)
+        total_chars += len(sentence) + 1
+        if total_chars >= max_chars:
+            break
+
+    if not selected_indices:
+        selected_indices = [ranked[0][0]]
+
+    selected_indices = sorted(set(selected_indices))
+    selected_text = "\n".join(sentences[index] for index in selected_indices)
+    if len(selected_text) > max_chars:
+        selected_text = selected_text[:max_chars]
+
+    top_sentences = [
+        {
+            "rank": rank + 1,
+            "sentence_index": index,
+            "score": round(float(score), 6),
+            "text_preview": sentences[index][:180],
+        }
+        for rank, (index, score) in enumerate(ranked[: min(top_k, 8)])
     ]
-    
-    # Dovish keywords
-    dovish_terms = [
-        "accommodative", "patient", "gradual", "below target",
-        "softening", "easing", "downside risk", "slowing",
-        "moderating", "transitory", "temporary", "cut",
-        "support the economy", "maximum employment", "labor market slack",
-        "well-anchored", "contained", "subdued",
-    ]
-    
-    # Uncertainty keywords
-    uncertainty_terms = [
-        "uncertain", "uncertainty", "data dependent", "meeting by meeting",
-        "evolving", "assess", "monitor", "depends on", "conditional",
-        "range of possible", "risk management",
-    ]
-    
-    hawkish_count = sum(1 for t in hawkish_terms if t in text_lower)
-    dovish_count = sum(1 for t in dovish_terms if t in text_lower)
-    uncertainty_count = sum(1 for t in uncertainty_terms if t in text_lower)
-    total = hawkish_count + dovish_count + 1  # avoid div by zero
-    
-    hawkish_score = (hawkish_count - dovish_count) / total
-    
     return {
-        "hawkish_dovish_score": round(max(-1.0, min(1.0, hawkish_score * 2)), 3),
-        "inflation_concern": round(min(1.0, hawkish_count / max(total, 5) * 2), 3),
-        "labor_market_assessment": round(max(-1.0, min(1.0, (dovish_count - hawkish_count) / max(total, 5))), 3),
-        "growth_outlook": 0.0,
-        "forward_guidance_strength": round(min(1.0, (hawkish_count + dovish_count) / max(total, 3) * 1.5), 3),
-        "uncertainty_index": round(min(1.0, uncertainty_count / max(total, 5) * 2), 3),
-        "rate_hike_signal": round(max(0.0, hawkish_score), 3),
-        "rate_cut_signal": round(max(0.0, -hawkish_score), 3),
-        "policy_flexibility": round(uncertainty_count / max(total, 5), 3),
-        "inflation_commitment_credibility": round(max(0.0, hawkish_count / max(total, 5) * 1.5), 3),
-        "_method": "keyword-based (deterministic)",
+        "selected_text": selected_text,
+        "diagnostics": {
+            "filter": "tfidf_policy_context",
+            "input_sentence_count": len(sentences),
+            "selected_sentence_count": len(selected_indices),
+            "top_sentences": top_sentences,
+        },
     }
+
+
+def _normalize_text(text: str) -> str:
+    return re.sub(r"\s+", " ", text.lower()).strip()
+
+
+def _split_sentences(text: str) -> list[str]:
+    sentences = [part.strip() for part in re.split(r"(?<=[.!?;])\s+", text) if part.strip()]
+    return sentences or ([text] if text else [])
 
 
 def demo_semantic_pipeline() -> None:

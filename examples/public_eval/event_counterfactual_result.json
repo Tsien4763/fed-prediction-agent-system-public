@@ -258,7 +258,7 @@
   },
   "boundaries": [
     "This artifact validates event-triggered five-cluster counterfactual routing.",
-    "It is a bounded one-round public rerun using public fixtures and rule fallback when no DeepSeek key is present.",
+    "It is a bounded one-round public rerun artifact. Current runtime requires DeepSeek; rule fallback is disabled.",
     "It does not claim intraday Fed label evaluation because the public FOMC labels are quarterly."
   ]
 }

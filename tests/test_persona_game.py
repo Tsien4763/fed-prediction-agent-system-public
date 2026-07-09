@@ -3,11 +3,11 @@ from __future__ import annotations
 import json
 
 from fed_game.clusters import get_role
-from fed_game.config import load_config
+from fed_game.config import RuntimeConfig, load_config
 from fed_game.persona import load_configured_personas, load_policy_persona
 from fed_game.schemas import AgentMemory, StrategyVector
+from fed_game.self_play import RollingSelfPlayEngine
 from fed_game.skills import BestResponseSkill, LLMBestResponseSkill, LLMEquilibriumJudge
-from fed_game.tools import PolicyTools
 
 
 class FakeTeacher:
@@ -131,7 +131,7 @@ def test_deepseek_payoff_and_equilibrium_contracts_use_persona_context() -> None
     assert "Credibility is the real policy multiplier" in prompt_text
 
 
-def test_rule_fallback_responds_to_high_inflation_and_taylor_gap() -> None:
+def test_rule_best_response_is_disabled() -> None:
     context = {
         "quarter": "2022Q2",
         "var_vecm_briefing": {
@@ -143,16 +143,54 @@ def test_rule_fallback_responds_to_high_inflation_and_taylor_gap() -> None:
         },
     }
 
-    proposal = BestResponseSkill().run(
-        role=get_role("usa_warsh"),
-        memory=AgentMemory(role_id="usa_warsh", cluster_id="USA"),
-        context=context,
-        opponent_strategies={"CHN": StrategyVector()},
-        evidence=[],
-        round_id=1,
-    )
-    prediction = PolicyTools(rag_index=None).estimate_fomc_path(proposal.strategy, proposal.belief)
+    try:
+        BestResponseSkill().run(
+            role=get_role("usa_warsh"),
+            memory=AgentMemory(role_id="usa_warsh", cluster_id="USA"),
+            context=context,
+            opponent_strategies={"CHN": StrategyVector()},
+            evidence=[],
+            round_id=1,
+        )
+    except RuntimeError as exc:
+        assert "rule mode is disabled" in str(exc)
+    else:
+        raise AssertionError("BestResponseSkill must be disabled; no rule fallback is allowed.")
 
-    assert proposal.belief.inflation_persistence > 0.8
-    assert proposal.strategy.rate_hike_25bp_prob > 0.45
-    assert prediction["hike_25bp"] > prediction["hold"]
+
+def test_llm_best_response_rejects_missing_teacher_and_disabled_payoff() -> None:
+    try:
+        LLMBestResponseSkill(None)
+    except RuntimeError as exc:
+        assert "requires a DeepSeek teacher" in str(exc)
+    else:
+        raise AssertionError("LLMBestResponseSkill must require a DeepSeek teacher.")
+
+    try:
+        LLMBestResponseSkill(FakeTeacher(), use_llm_payoff=False)
+    except RuntimeError as exc:
+        assert "payoff judging is required" in str(exc)
+    else:
+        raise AssertionError("LLMBestResponseSkill must require DeepSeek payoff judging.")
+
+    try:
+        LLMEquilibriumJudge(None)
+    except RuntimeError as exc:
+        assert "requires a DeepSeek teacher" in str(exc)
+    else:
+        raise AssertionError("LLMEquilibriumJudge must require a DeepSeek teacher.")
+
+
+def test_self_play_engine_requires_real_deepseek_key(monkeypatch) -> None:
+    raw = json.loads(json.dumps(load_config().raw))
+    raw["teacher"]["api_key_env"] = "MAE_CPS_TEST_MISSING_DEEPSEEK_KEY"
+    raw["teacher"]["allow_mock_without_key"] = False
+    monkeypatch.delenv("MAE_CPS_TEST_MISSING_DEEPSEEK_KEY", raising=False)
+
+    try:
+        RollingSelfPlayEngine(RuntimeConfig(raw=raw))
+    except RuntimeError as exc:
+        assert "requires DEEPSEEK_API_KEY" in str(exc)
+        assert "fallback is disabled" in str(exc)
+    else:
+        raise AssertionError("RollingSelfPlayEngine must require a real DeepSeek key.")

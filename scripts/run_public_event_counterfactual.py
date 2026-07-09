@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -25,6 +26,7 @@ OUTPUT_PATH = PUBLIC_EVAL_DIR / "event_counterfactual_result.json"
 
 
 def main() -> int:
+    require_deepseek_key()
     build_macro_panel()
     build_public_rag_index()
 
@@ -150,10 +152,15 @@ def build_public_result(record: dict[str, Any]) -> dict[str, Any]:
         },
         "boundaries": [
             "This artifact validates event-triggered five-cluster counterfactual routing.",
-            "It is a bounded one-round public rerun using public fixtures and rule fallback when no DeepSeek key is present.",
+            "It is a bounded one-round rerun using public fixtures and a required DeepSeek key.",
             "It does not claim intraday Fed label evaluation because the public FOMC labels are quarterly.",
         ],
     }
+
+
+def require_deepseek_key() -> None:
+    if not os.getenv("DEEPSEEK_API_KEY"):
+        raise RuntimeError("DEEPSEEK_API_KEY is required; event counterfactual self-play has no fallback mode.")
 
 
 def quarter_end_date(quarter: str) -> str:

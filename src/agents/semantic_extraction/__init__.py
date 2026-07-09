@@ -40,7 +40,7 @@ class SemanticExtractionAgent:
                 meeting_date=doc.get("published_at") or state.get("event", {}).get("as_of"),
                 api_key=runtime_inputs.get("semantic_api_key"),
                 base_url=runtime_inputs.get("semantic_base_url"),
-                require_llm=bool(runtime_inputs.get("semantic_require_llm", False)),
+                require_llm=True,
             )
             signals.append(
                 {
@@ -54,15 +54,17 @@ class SemanticExtractionAgent:
 
         state["semantic_signals"] = signals
         llm_count = sum(1 for item in signals if str(item.get("score", {}).get("_method", "")).lower().startswith("llm"))
-        fallback_count = sum(
-            1 for item in signals if "keyword" in str(item.get("score", {}).get("_method", "")).lower()
-        )
         result = {
             "status": "scored",
             "signal_count": len(signals),
             "llm_count": llm_count,
-            "deterministic_fallback_count": fallback_count,
-            "strict_llm_required": bool(runtime_inputs.get("semantic_require_llm", False)),
+            "tfidf_filtered_count": sum(
+                1
+                for item in signals
+                if item.get("score", {}).get("_semantic_filter", {}).get("filter") == "tfidf_policy_context"
+            ),
+            "fallback_disabled": True,
+            "strict_llm_required": True,
         }
         state[self.name] = result
         return append_audit(state, self.name, result)

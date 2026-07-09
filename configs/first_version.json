@@ -25,7 +25,7 @@
     "model_env": "DEEPSEEK_MODEL",
     "default_base_url": "https://api.deepseek.com",
     "default_model": "deepseek-chat",
-    "allow_mock_without_key": true,
+    "allow_mock_without_key": false,
     "timeout_seconds": 90
   },
   "self_play": {

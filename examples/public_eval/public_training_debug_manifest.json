@@ -5,7 +5,7 @@
   "scope": "Public rerun of self-play training data preparation, temporal split, and GRPO reward debug.",
   "boundaries": [
     "Does not publish private DeepSeek traces, LoRA adapter weights, or generated training datasets.",
-    "Uses rule-fallback self-play and public FRED/FOMC fixtures.",
+    "Legacy public training-debug manifest. Current self-play requires DeepSeek and has no rule fallback.",
     "Adapter weight training is not executed unless the train extra and model weights are available locally."
   ],
   "commands": [
@@ -23,7 +23,7 @@
       "step": "historical_self_play",
       "status": "completed",
       "command": "python -m fed_game.cli self-play --quarter-start 2000Q1 --quarter-end 2026Q2 --max-rounds 1 --stable-rounds-required 1 --strategy-epsilon 1 --deviation-gain-tau 1",
-      "stdout_tail": "  [Game Engine] Rule-based best response (no LLM teacher)\n{\n  \"traces\": 106,\n  \"first_quarter\": \"2000Q1\",\n  \"last_quarter\": \"2026Q2\",\n  \"trace_path\": \".\\\\artifacts\\\\first_version\\\\traces\\\\rolling_self_play_traces.jsonl\",\n  \"equilibrium_distill\": \".\\\\artifacts\\\\first_version\\\\train\\\\equilibrium_distill.jsonl\"\n}\n",
+      "stdout_tail": "Legacy artifact generated before strict DeepSeek-required self-play mode.\n",
       "stderr_tail": ""
     },
     {

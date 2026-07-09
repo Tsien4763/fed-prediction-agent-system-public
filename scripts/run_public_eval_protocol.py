@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -21,6 +22,7 @@ MANIFEST_PATH = REPO_ROOT / "examples" / "public_eval" / "public_rerun_manifest.
 
 def main() -> int:
     commands: list[dict[str, Any]] = []
+    require_deepseek_key()
     build_macro_panel()
     commands.append({"step": "build_macro_panel", "status": "completed", "source": relative_path(MACRO_FIXTURE)})
 
@@ -131,7 +133,7 @@ def build_manifest(commands: list[dict[str, Any]]) -> dict[str, Any]:
         "scope": "Public reproducibility protocol for validation forecasting comparison.",
         "boundaries": [
             "Does not publish private DeepSeek traces, LoRA adapter weights, or generated training datasets.",
-            "Uses rule-fallback self-play for the public Agent row.",
+            "Requires DeepSeek self-play; rule and mock fallback paths are disabled.",
             "Validation fixture has 10 labeled quarters; metrics are diagnostic, not production claims.",
         ],
         "commands": commands,
@@ -159,6 +161,11 @@ def printable_command(command: list[str]) -> str:
         else:
             parts.append(item)
     return " ".join(parts)
+
+
+def require_deepseek_key() -> None:
+    if not os.getenv("DEEPSEEK_API_KEY"):
+        raise RuntimeError("DEEPSEEK_API_KEY is required; public eval self-play has no fallback mode.")
 
 
 def relative_path(path: Path) -> str:

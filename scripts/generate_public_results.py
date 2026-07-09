@@ -189,8 +189,8 @@ def build_forecasting_comparison(
     agent_rows, agent_metadata = agent_trace_rows(val, trace_path)
     models["rule_self_play_agent"] = {
         "description": (
-            "Rule-fallback multi-agent self-play trace on the validation window. Public rerun uses "
-            "bounded rounds and no private DeepSeek key or LoRA weights."
+            "Legacy public multi-agent self-play baseline on the validation window. Current self-play "
+            "runtime requires DeepSeek for strategy, payoff, and equilibrium judging."
         ),
         "rows": agent_rows,
         "metadata": agent_metadata,
@@ -416,7 +416,7 @@ def agent_trace_rows(labels: list[dict[str, Any]], trace_path: Path) -> tuple[li
         "trace_rows": len(trace_by_quarter),
         "evaluated_rows": len(rows),
         "missing_quarters": missing,
-        "mode": "rule-fallback bounded-round public rerun",
+        "mode": "legacy public bounded-round self-play artifact; current runtime is DeepSeek-required",
     }
 
 

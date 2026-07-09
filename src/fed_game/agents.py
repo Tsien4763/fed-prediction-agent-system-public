@@ -5,14 +5,14 @@ from typing import Any
 
 from .clusters import RoleCard
 from .schemas import AgentMemory, AgentProposal, StrategyVector
-from .skills import BestResponseSkill
+from .skills import LLMBestResponseSkill
 
 
 @dataclass
 class PolicyAgent:
     role: RoleCard
     memory: AgentMemory
-    best_response_skill: BestResponseSkill
+    best_response_skill: LLMBestResponseSkill
 
     def propose(
         self,
@@ -43,4 +43,3 @@ class PolicyAgent:
                 }
             )
         return proposal
-

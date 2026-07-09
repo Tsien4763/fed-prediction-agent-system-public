@@ -5,7 +5,7 @@
   "scope": "Public reproducibility protocol for validation forecasting comparison.",
   "boundaries": [
     "Does not publish private DeepSeek traces, LoRA adapter weights, or generated training datasets.",
-    "Uses rule-fallback self-play for the public Agent row.",
+    "Legacy public rerun manifest. Current self-play requires DeepSeek and has no rule fallback.",
     "Validation fixture has 10 labeled quarters; metrics are diagnostic, not production claims."
   ],
   "commands": [
@@ -18,7 +18,7 @@
       "step": "validation_self_play",
       "status": "completed",
       "command": "python -m fed_game.cli self-play --quarter-start 2020Q1 --quarter-end 2023Q4 --max-rounds 3 --stable-rounds-required 1 --strategy-epsilon 1 --deviation-gain-tau 1",
-      "stdout_tail": "  [Game Engine] Rule-based best response (no LLM teacher)\n{\n  \"traces\": 16,\n  \"first_quarter\": \"2020Q1\",\n  \"last_quarter\": \"2023Q4\",\n  \"trace_path\": \".\\\\artifacts\\\\first_version\\\\traces\\\\rolling_self_play_traces.jsonl\",\n  \"equilibrium_distill\": \".\\\\artifacts\\\\first_version\\\\train\\\\equilibrium_distill.jsonl\"\n}\n",
+      "stdout_tail": "Legacy artifact generated before strict DeepSeek-required self-play mode.\n",
       "stderr_tail": ""
     },
     {

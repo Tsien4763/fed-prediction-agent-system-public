@@ -14,7 +14,7 @@ from .config import SELF_PLAY_TRACE_FILENAME, RuntimeConfig, ensure_dir, ensure_
 from .data_sources import RagIndex
 from .persona import PolicyPersona, load_configured_personas
 from .schemas import AgentMemory, AgentProposal, ClusterStrategy, GameTrace, StrategyVector
-from .skills import BestResponseSkill, CoordinatorSkill, CriticSkill, EvidenceSkill, LLMEquilibriumJudge, LLMBestResponseSkill
+from .skills import CoordinatorSkill, CriticSkill, EvidenceSkill, LLMEquilibriumJudge, LLMBestResponseSkill
 from .tools import PolicyTools
 
 
@@ -241,31 +241,32 @@ class RollingSelfPlayEngine:
         self.require_llm_equilibrium_for_convergence = bool(
             sp_cfg.get("require_llm_equilibrium_for_convergence", True)
         )
-        # Try LLM-powered best response; fall back to rule-based
-        teacher = None
-        try:
-            from .teacher import build_teacher_client
-            teacher = build_teacher_client(config)
-            if config.allow_mock_teacher and not config.teacher_api_key:
-                teacher = None  # mock mode → use rule-based for reliability
-        except Exception:
-            pass
-        self.teacher = teacher
-        
-        if teacher is not None:
-            self.best_response = LLMBestResponseSkill(
-                teacher,
-                use_llm_payoff=bool(sp_cfg.get("llm_payoff_judge", True)),
+        if not config.teacher_api_key:
+            raise RuntimeError(
+                "RollingSelfPlayEngine requires DEEPSEEK_API_KEY. "
+                "Rule/mock fallback is disabled for strategy, payoff, and equilibrium checks."
             )
-            print("  [Game Engine] LLM best response + payoff judge (DeepSeek teacher)")
-        else:
-            self.best_response = BestResponseSkill()
-            print("  [Game Engine] Rule-based best response (no LLM teacher)")
+        if config.allow_mock_teacher:
+            raise RuntimeError("Mock teacher mode is disabled for self-play; provide a real DeepSeek key.")
+        if not bool(sp_cfg.get("llm_payoff_judge", True)):
+            raise RuntimeError("self_play.llm_payoff_judge must be true; rule payoff fallback is disabled.")
+        if not self.use_llm_equilibrium_check or not self.require_llm_equilibrium_for_convergence:
+            raise RuntimeError("DeepSeek equilibrium checking is required for convergence; heuristic-only mode is disabled.")
+
+        from .teacher import build_teacher_client
+        teacher = build_teacher_client(config)
+        self.teacher = teacher
+
+        self.best_response = LLMBestResponseSkill(
+            teacher,
+            use_llm_payoff=True,
+        )
+        print("  [Game Engine] DeepSeek best response + payoff judge + equilibrium auditor")
             
         self.critic = CriticSkill()
         self.coordinator = CoordinatorSkill()
         self.evidence = EvidenceSkill()
-        self.equilibrium_judge = LLMEquilibriumJudge(teacher if self.use_llm_equilibrium_check else None)
+        self.equilibrium_judge = LLMEquilibriumJudge(teacher)
         self.agents = self._build_agents()
         self.memory = CrossQuarterMemory()
 
@@ -389,15 +390,10 @@ class RollingSelfPlayEngine:
                 previous_cluster_strategies[cluster_id].distance(strategy)
                 for cluster_id, strategy in round_map.items()
             )
-            if any(proposal.payoff_source == "deepseek_payoff_judge" for proposal in round_proposals):
-                max_deviation_gain = max((proposal.regret_estimate for proposal in round_proposals), default=0.0)
-                deviation_gain_method = "deepseek_role_regret"
-            else:
-                max_deviation_gain = max(
-                    (proposal.regret_estimate * max_distance for proposal in round_proposals),
-                    default=0.0,
-                )
-                deviation_gain_method = "fallback_regret_times_strategy_distance"
+            if any(proposal.payoff_source != "deepseek_payoff_judge" for proposal in round_proposals):
+                raise RuntimeError("Self-play received a non-DeepSeek payoff source; no fallback is allowed.")
+            max_deviation_gain = max((proposal.regret_estimate for proposal in round_proposals), default=0.0)
+            deviation_gain_method = "deepseek_role_regret"
             all_proposals.extend(round_proposals)
             final_clusters = round_clusters
             previous_cluster_strategies = round_map
@@ -413,49 +409,32 @@ class RollingSelfPlayEngine:
                 "heuristic_passed": stable_rounds >= stable_required,
             }
             if stable_rounds >= stable_required:
-                if self.use_llm_equilibrium_check:
-                    equilibrium_check = self.equilibrium_judge.check(
-                        quarter=quarter,
-                        round_id=round_id,
-                        cluster_strategies=previous_cluster_strategies,
-                        proposals=all_proposals,
-                        var_vecm_briefing=var_vecm_briefing,
-                        heuristic=heuristic,
-                        role_personas={
-                            role_id: persona.to_prompt_payload(max_markdown_chars=1800)
-                            for role_id, persona in self.personas.items()
-                        },
-                    )
-                    max_deviation_gain = max(
-                        max_deviation_gain,
-                        float(equilibrium_check.get("max_profitable_deviation_gain", 0.0) or 0.0),
-                    )
-                    llm_required = self.require_llm_equilibrium_for_convergence and self.teacher is not None
-                    llm_accepts = bool(equilibrium_check.get("checked")) and bool(
-                        equilibrium_check.get("is_nash_equilibrium")
-                    )
-                    if llm_accepts or not llm_required:
-                        break
-                    equilibrium_feedback = equilibrium_check
-                    stable_rounds = 0
-                else:
-                    equilibrium_check = {
-                        "checked": False,
-                        "source": "heuristic_only_disabled",
-                        "quarter": quarter,
-                        "round_id": round_id,
-                        "is_nash_equilibrium": True,
-                        "max_profitable_deviation_gain": round(max_deviation_gain, 6),
-                        "profitable_deviations": [],
-                        "reasoning": "LLM equilibrium judge disabled; accepted heuristic convergence.",
-                        "heuristic": heuristic,
-                    }
+                equilibrium_check = self.equilibrium_judge.check(
+                    quarter=quarter,
+                    round_id=round_id,
+                    cluster_strategies=previous_cluster_strategies,
+                    proposals=all_proposals,
+                    var_vecm_briefing=var_vecm_briefing,
+                    heuristic=heuristic,
+                    role_personas={
+                        role_id: persona.to_prompt_payload(max_markdown_chars=1800)
+                        for role_id, persona in self.personas.items()
+                    },
+                )
+                max_deviation_gain = max(
+                    max_deviation_gain,
+                    float(equilibrium_check.get("max_profitable_deviation_gain", 0.0) or 0.0),
+                )
+                llm_accepts = bool(equilibrium_check.get("checked")) and bool(
+                    equilibrium_check.get("is_nash_equilibrium")
+                )
+                if llm_accepts:
                     break
+                equilibrium_feedback = equilibrium_check
+                stable_rounds = 0
 
         if (
-            self.use_llm_equilibrium_check
-            and self.teacher is not None
-            and final_clusters
+            final_clusters
             and (
                 not bool(equilibrium_check.get("checked"))
                 or int(equilibrium_check.get("round_id", 0) or 0) != final_clusters[-1].round_id
@@ -503,16 +482,10 @@ class RollingSelfPlayEngine:
         
         # --- Record in cross-quarter memory for future quarters ---
         self.memory.record(quarter, [c.to_dict() for c in final_clusters], fed_path)
-        llm_required = (
-            self.use_llm_equilibrium_check
-            and self.require_llm_equilibrium_for_convergence
-            and self.teacher is not None
-        )
         converged = stable_rounds >= stable_required
-        if llm_required:
-            converged = converged and bool(equilibrium_check.get("checked")) and bool(
-                equilibrium_check.get("is_nash_equilibrium")
-            )
+        converged = converged and bool(equilibrium_check.get("checked")) and bool(
+            equilibrium_check.get("is_nash_equilibrium")
+        )
         
         return GameTrace(
             quarter=quarter,

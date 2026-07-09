@@ -29,6 +29,7 @@ INFER_SMOKE_REPORT = RESULTS_DIR / "public_grpo_smoke_val_report.json"
 
 def main() -> int:
     commands: list[dict[str, Any]] = []
+    require_deepseek_key()
     build_macro_panel()
     build_public_rag_index()
     commands.extend(
@@ -117,6 +118,11 @@ def build_macro_panel() -> None:
     out = REPO_ROOT / "data" / "processed" / "us_macro_panel.parquet"
     out.parent.mkdir(parents=True, exist_ok=True)
     panel.to_parquet(out)
+
+
+def require_deepseek_key() -> None:
+    if not os.getenv("DEEPSEEK_API_KEY"):
+        raise RuntimeError("DEEPSEEK_API_KEY is required; training debug self-play has no fallback mode.")
 
 
 def build_public_rag_index() -> None:
@@ -216,7 +222,7 @@ def build_manifest(
         "scope": "Public rerun of self-play training data preparation, temporal split, and GRPO reward debug.",
         "boundaries": [
             "Does not publish private DeepSeek traces, LoRA adapter weights, or generated training datasets.",
-            "Uses rule-fallback self-play and public FRED/FOMC fixtures.",
+            "Uses DeepSeek-required self-play and public FRED/FOMC fixtures.",
             "Adapter weight training is not executed unless the train extra and model weights are available locally.",
         ],
         "commands": commands,

@@ -291,14 +291,14 @@
       }
     },
     "rule_self_play_agent": {
-      "description": "Rule-fallback multi-agent self-play trace on the validation window. Public rerun uses bounded rounds and no private DeepSeek key or LoRA weights.",
+        "description": "Legacy public multi-agent self-play baseline on the validation window. Current runtime requires DeepSeek for strategy, payoff, and equilibrium judging.",
       "metadata": {
         "status": "completed",
         "trace_path": "artifacts/first_version/traces/rolling_self_play_traces.jsonl",
         "trace_rows": 106,
         "evaluated_rows": 10,
         "missing_quarters": [],
-        "mode": "rule-fallback bounded-round public rerun"
+        "mode": "legacy public bounded-round self-play artifact; current runtime is DeepSeek-required"
       },
       "metrics": {
         "accuracy": 0.7,

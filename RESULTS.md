@@ -52,9 +52,9 @@ Validation fixture: 10 labeled quarters, class mix `hike=7`, `hold=2`, `cut=1`. 
 | Naive macro logistic | 0.800 | 0.667 | 0.533 | 0.329 | 0.691 | `cut=2`, `hike=8` |
 | Naive macro ordered probit | 0.900 | 0.667 | 0.600 | 0.191 | 0.325 | `hold=3`, `hike=7` |
 | Rolling VAR rate-direction | 0.800 | 0.667 | 0.533 | 0.252 | 0.470 | `cut=2`, `hike=8` |
-| Rule self-play agent | 0.700 | 0.571 | 0.468 | 0.478 | 0.760 | `hold=5`, `hike=5` |
+| Legacy self-play agent baseline | 0.700 | 0.571 | 0.468 | 0.478 | 0.760 | `hold=5`, `hike=5` |
 
-The public rule fallback now avoids the previous all-hold collapse on the 2022-2023 validation window. It matches the majority and persistence accuracy but does not beat the naive macro logistic, ordered probit, or rolling VAR baselines. The ordered probit fit converges but reports a Hessian covariance warning in this small sample, so it is best read as a diagnostic baseline. The honest v1 result is: the repository demonstrates the full agent pipeline and evaluation contract, while forecasting edge still requires stronger teacher coverage, learned calibration, and validation-selected GRPO rather than hand-tuned fallback rules.
+The legacy public self-play baseline avoids the previous all-hold collapse on the 2022-2023 validation window. It matches the majority and persistence accuracy but does not beat the naive macro logistic, ordered probit, or rolling VAR baselines. The ordered probit fit converges but reports a Hessian covariance warning in this small sample, so it is best read as a diagnostic baseline. Current self-play is stricter: DeepSeek is required for strategy generation, payoff judgement, and equilibrium auditing, and rule/mock fallback is disabled. The honest v1 result is: the repository demonstrates the full agent pipeline and evaluation contract, while forecasting edge still requires stronger teacher coverage, learned calibration, and validation-selected GRPO.
 
 ## Local Adapter Result Card
 

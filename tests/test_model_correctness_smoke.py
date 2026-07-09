@@ -9,25 +9,74 @@ import pytest
 
 from fed_game.evaluation import evaluate_forecasting_traces
 from fed_game.llm import TeacherClient
-from models.semantic_pipeline import _keyword_score, _post_chat_completion
+from models.semantic_pipeline import _post_chat_completion, score_hawkish_dovish, select_tfidf_policy_context
 from models.var_model import build_var
 from models.vecm_model import build_vecm
 
 
-def test_keyword_semantic_scorer_separates_hawkish_and_dovish_language() -> None:
-    hawkish = _keyword_score(
-        "Inflation remains elevated. The Committee is strongly committed to price stability "
-        "and ongoing increases may be appropriate."
-    )
-    dovish = _keyword_score(
-        "The labor market is softening, downside risk is rising, and policy can be patient "
-        "while supporting maximum employment."
+def test_tfidf_filter_selects_policy_context_before_deepseek() -> None:
+    selected = select_tfidf_policy_context(
+        "Lunch logistics were discussed by staff. "
+        "Inflation remains elevated and the Committee may maintain a restrictive policy stance. "
+        "Website navigation and archive links appear in the footer.",
+        top_k=1,
     )
 
-    assert hawkish["hawkish_dovish_score"] > 0
-    assert hawkish["rate_hike_signal"] > hawkish["rate_cut_signal"]
-    assert dovish["hawkish_dovish_score"] < 0
-    assert dovish["rate_cut_signal"] > dovish["rate_hike_signal"]
+    assert "inflation remains elevated" in selected["selected_text"]
+    assert "lunch logistics" not in selected["selected_text"]
+    assert selected["diagnostics"]["filter"] == "tfidf_policy_context"
+
+
+def test_semantic_scoring_requires_deepseek_and_passes_tfidf_context(monkeypatch: pytest.MonkeyPatch) -> None:
+    from models import semantic_pipeline
+
+    calls: list[dict[str, object]] = []
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            content = json.dumps(
+                {
+                    "hawkish_dovish_score": 0.5,
+                    "inflation_concern": 0.8,
+                    "labor_market_assessment": 0.2,
+                    "growth_outlook": 0.0,
+                    "forward_guidance_strength": 0.4,
+                    "uncertainty_index": 0.3,
+                    "rate_hike_signal": 0.6,
+                    "rate_cut_signal": 0.05,
+                    "policy_flexibility": 0.4,
+                    "inflation_commitment_credibility": 0.7,
+                }
+            )
+            return {"choices": [{"message": {"content": content}}]}
+
+    def fake_post(url, *, json, headers, timeout):
+        calls.append({"url": url, "json": json, "headers": headers, "timeout": timeout})
+        return FakeResponse()
+
+    monkeypatch.setattr(semantic_pipeline.requests, "post", fake_post)
+    score = score_hawkish_dovish(
+        "Boilerplate archive navigation. "
+        "Inflation remains elevated and ongoing increases may be appropriate. "
+        "Footer links and subscription information.",
+        api_key="test-key",
+        base_url="https://api.example.test",
+    )
+
+    prompt = calls[0]["json"]["messages"][1]["content"]
+    assert score["_method"] == "LLM (DeepSeek)"
+    assert score["_semantic_filter"]["filter"] == "tfidf_policy_context"
+    assert "Inflation remains elevated" in prompt or "inflation remains elevated" in prompt
+    assert "Boilerplate archive navigation" not in prompt
+
+
+def test_semantic_scoring_has_no_local_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="DeepSeek semantic extraction is required"):
+        score_hawkish_dovish("Inflation remains elevated.")
 
 
 def test_llm_semantic_client_uses_timeout_and_bounded_retry(monkeypatch: pytest.MonkeyPatch) -> None:

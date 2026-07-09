@@ -11,11 +11,11 @@ from .schemas import AgentMemory, AgentProposal, BeliefState, Critique, PolicyCo
 
 class SemanticExtractionSkill:
     def __init__(self, teacher: TeacherClient | None = None) -> None:
+        if teacher is None:
+            raise RuntimeError("SemanticExtractionSkill requires a DeepSeek teacher; no fallback is allowed.")
         self.teacher = teacher
 
     def run(self, policy_text: str, metadata: dict[str, Any]) -> dict[str, Any]:
-        if self.teacher is None:
-            return BeliefState.from_context({"text": policy_text, **metadata}).to_dict()
         messages = [
             {
                 "role": "system",
@@ -33,6 +33,13 @@ class SemanticExtractionSkill:
 
 
 class BestResponseSkill:
+    """Disabled rule strategy mode.
+
+    The project contract requires DeepSeek for strategy generation, payoff
+    judging, and equilibrium auditing. This class remains only as an explicit
+    guard against accidental reintroduction of rule fallback.
+    """
+
     def run(
         self,
         *,
@@ -43,106 +50,10 @@ class BestResponseSkill:
         evidence: list[dict[str, Any]],
         round_id: int,
     ) -> AgentProposal:
-        belief = BeliefState.from_context(context)
-        previous = memory.previous_strategy
-        opponent_hawkish = max((s.hawkish_signal_prob for s in opponent_strategies.values()), default=0.4)
-        opponent_trade = max((s.trade_or_sanction_pressure_prob for s in opponent_strategies.values()), default=0.2)
-        role_bias = self._role_bias(role.role_id) + self._scenario_role_bias(role.role_id, context)
-        target = StrategyVector(
-            hawkish_signal_prob=belief.policy_credibility_risk * 0.35 + belief.inflation_persistence * 0.45 + role_bias + opponent_hawkish * 0.10,
-            rate_hike_25bp_prob=(
-                0.02
-                + belief.inflation_persistence * 0.55
-                + belief.policy_credibility_risk * 0.15
-                + role_bias * 0.7
-                - belief.labor_softening * 0.20
-            ),
-            hold_with_hawkish_statement_prob=0.45 + belief.inflation_persistence * 0.25 + belief.policy_credibility_risk * 0.15,
-            remove_forward_guidance_prob=0.45 + belief.policy_credibility_risk * 0.22 + (0.12 if role.role_id == "usa_warsh" else 0.0),
-            easing_signal_prob=belief.labor_softening * 0.35 - belief.inflation_persistence * 0.18 - role_bias * 0.5,
-            liquidity_support_prob=belief.dollar_liquidity_pressure * 0.35 + belief.labor_softening * 0.15,
-            trade_or_sanction_pressure_prob=max(belief.geopolitical_escalation, opponent_trade * 0.7),
-        ).normalized()
-        persona_priors = _persona_priors(context)
-        if persona_priors:
-            target = target.blend(StrategyVector.from_dict(persona_priors), 0.30).normalized()
-        inertia = 0.35 if memory.payoff_history else 0.15
-        strategy = previous.blend(target, 1.0 - inertia).normalized()
-        cost = PolicyCost(
-            credibility_loss_if_dovish=belief.policy_credibility_risk,
-            growth_cost_if_hike=belief.labor_softening + strategy.rate_hike_25bp_prob * 0.25,
-            political_cost_if_tight=0.25 + strategy.rate_hike_25bp_prob * 0.4,
-            external_retaliation_cost=strategy.trade_or_sanction_pressure_prob * 0.5,
-            policy_turn_cost=previous.distance(strategy),
+        raise RuntimeError(
+            "BestResponseSkill rule mode is disabled. "
+            "Use LLMBestResponseSkill with a real DeepSeek teacher; no fallback is allowed."
         )
-        payoff = self._payoff(role.role_id, strategy, belief, cost)
-        regret = max(0.0, 0.82 - payoff)
-        rationale = (
-            f"{role.name} chooses a best response under objective: {role.objective}. "
-            f"The strategy balances inflation credibility, growth cost, and opponent pressure."
-        )
-        return AgentProposal(
-            role_id=role.role_id,
-            cluster_id=role.cluster_id,
-            round_id=round_id,
-            strategy=strategy,
-            belief=belief,
-            policy_cost=cost,
-            rationale=rationale,
-            evidence=evidence,
-            payoff_estimate=payoff,
-            regret_estimate=regret,
-            payoff_source="rule_linear_fallback",
-            payoff_reasoning="Rule fallback payoff combines credibility, growth, stability, and external-cost terms.",
-        )
-
-    @staticmethod
-    def _role_bias(role_id: str) -> float:
-        if "hawk" in role_id or role_id == "usa_warsh":
-            return 0.16
-        if "dove" in role_id or "white_house" in role_id:
-            return -0.10
-        if "energy" in role_id or "trade" in role_id:
-            return 0.04
-        return 0.0
-
-    @staticmethod
-    def _scenario_role_bias(role_id: str, context: dict[str, Any]) -> float:
-        briefing = context.get("var_vecm_briefing", {})
-        scenario = context.get("counterfactual_scenario", {})
-        chair = str(
-            briefing.get("fed_chair")
-            or briefing.get("chair_profile")
-            or scenario.get("fed_chair")
-            or scenario.get("chair_profile")
-            or ""
-        ).lower()
-        replaced = _truthy(briefing.get("warsh_replaced_by_powell") or scenario.get("warsh_replaced_by_powell"))
-        if role_id == "usa_warsh":
-            if replaced or chair in {"powell", "yellen", "dove", "dovish"}:
-                return -0.14
-            if chair in {"warsh", "hawk", "hawkish"}:
-                return 0.06
-        if "hawk" in role_id and (replaced or chair in {"powell", "yellen", "dove", "dovish"}):
-            return -0.04
-        if "dove" in role_id and chair in {"warsh", "hawk", "hawkish"}:
-            return -0.03
-        return 0.0
-
-    @staticmethod
-    def _payoff(role_id: str, strategy: StrategyVector, belief: BeliefState, cost: PolicyCost) -> float:
-        s = strategy.normalized()
-        b = belief
-        c = cost
-        credibility = 1.0 - abs(s.hawkish_signal_prob - b.inflation_persistence)
-        growth = 1.0 - min(1.0, s.rate_hike_25bp_prob + c.growth_cost_if_hike * 0.4)
-        stability = 1.0 - min(1.0, s.trade_or_sanction_pressure_prob * 0.25 + s.liquidity_support_prob * 0.15)
-        if "dove" in role_id or "white_house" in role_id:
-            return round(0.35 * credibility + 0.45 * growth + 0.20 * stability, 4)
-        if "trade" in role_id or "energy" in role_id:
-            external = 1.0 - c.external_retaliation_cost
-            return round(0.30 * credibility + 0.30 * growth + 0.40 * external, 4)
-        return round(0.50 * credibility + 0.25 * growth + 0.25 * stability, 4)
 
 
 def _truthy(value: Any) -> bool:
@@ -163,10 +74,28 @@ def _clamp_float(value: Any, lower: float = 0.0, upper: float = 1.0) -> float:
     return max(lower, min(upper, number))
 
 
-def _float_field(data: Any, key: str, default: float) -> float:
+def _required_float_field(data: Any, key: str) -> float:
+    if not isinstance(data, dict) or key not in data:
+        raise ValueError(f"DeepSeek JSON missing required numeric field: {key}")
+    return _clamp_float(data[key])
+
+
+def _strict_strategy_from_payload(data: Any) -> StrategyVector:
     if not isinstance(data, dict):
-        return default
-    return _clamp_float(data.get(key, default))
+        raise ValueError("DeepSeek policy_best_response must return a JSON object or {'strategy': object}.")
+    required = [
+        "hawkish_signal_prob",
+        "rate_hike_25bp_prob",
+        "hold_with_hawkish_statement_prob",
+        "remove_forward_guidance_prob",
+        "easing_signal_prob",
+        "liquidity_support_prob",
+        "trade_or_sanction_pressure_prob",
+    ]
+    missing = [key for key in required if key not in data]
+    if missing:
+        raise ValueError(f"DeepSeek policy_best_response missing required StrategyVector fields: {missing}")
+    return StrategyVector(**{key: _required_float_field(data, key) for key in required})
 
 
 def _compact_evidence(item: dict[str, Any]) -> dict[str, Any]:
@@ -207,20 +136,6 @@ def _persona_prompt_payload(context: dict[str, Any]) -> dict[str, Any]:
     return persona if isinstance(persona, dict) else {}
 
 
-def _persona_priors(context: dict[str, Any]) -> dict[str, float]:
-    persona = _persona_prompt_payload(context)
-    priors = persona.get("priors")
-    if not isinstance(priors, dict):
-        return {}
-    result: dict[str, float] = {}
-    for key, value in priors.items():
-        try:
-            result[str(key)] = float(value)
-        except (TypeError, ValueError):
-            continue
-    return result
-
-
 class LLMBestResponseSkill:
     """LLM-powered best response: reads context, past strategies, and VAR/VECM data.
     
@@ -228,13 +143,17 @@ class LLMBestResponseSkill:
       - Past strategies (cross-quarter memory → policy inertia)
       - VAR/VECM briefing (economic equilibrium → data-aware decisions)
       - Opponent strategies (game-theoretic adaptation)
-    
-    Falls back to rule-based BestResponseSkill if LLM unavailable.
+
+    This class is fail-closed: strategy generation and payoff judging must both
+    come from DeepSeek. Rule fallback is deliberately disabled.
     """
     def __init__(self, teacher: TeacherClient | None = None, *, use_llm_payoff: bool = True):
+        if teacher is None:
+            raise RuntimeError("LLMBestResponseSkill requires a DeepSeek teacher; no fallback is allowed.")
+        if not use_llm_payoff:
+            raise RuntimeError("DeepSeek payoff judging is required; no rule payoff fallback is allowed.")
         self.teacher = teacher
         self.use_llm_payoff = use_llm_payoff
-        self._rule_fallback = BestResponseSkill()
     
     def run(
         self,
@@ -246,18 +165,10 @@ class LLMBestResponseSkill:
         evidence: list[dict[str, Any]],
         round_id: int,
     ) -> AgentProposal:
-        # Try LLM if available
-        if self.teacher is not None:
-            try:
-                return self._llm_propose(role, memory, context, opponent_strategies, evidence, round_id)
-            except Exception:
-                pass
-        
-        # Fallback to rule-based
-        return self._rule_fallback.run(
-            role=role, memory=memory, context=context,
-            opponent_strategies=opponent_strategies, evidence=evidence, round_id=round_id,
-        )
+        try:
+            return self._llm_propose(role, memory, context, opponent_strategies, evidence, round_id)
+        except Exception as exc:
+            raise RuntimeError(f"DeepSeek best-response failed for {role.role_id}; no fallback is allowed.") from exc
     
     def _llm_propose(
         self,
@@ -322,15 +233,7 @@ class LLMBestResponseSkill:
         
         # Parse LLM output into StrategyVector
         strategy_payload = result.get("strategy") if isinstance(result.get("strategy"), dict) else result
-        strategy = StrategyVector(
-            hawkish_signal_prob=_float_field(strategy_payload, "hawkish_signal_prob", 0.5),
-            rate_hike_25bp_prob=_float_field(strategy_payload, "rate_hike_25bp_prob", 0.2),
-            hold_with_hawkish_statement_prob=_float_field(strategy_payload, "hold_with_hawkish_statement_prob", 0.6),
-            remove_forward_guidance_prob=_float_field(strategy_payload, "remove_forward_guidance_prob", 0.5),
-            easing_signal_prob=_float_field(strategy_payload, "easing_signal_prob", 0.2),
-            liquidity_support_prob=_float_field(strategy_payload, "liquidity_support_prob", 0.2),
-            trade_or_sanction_pressure_prob=_float_field(strategy_payload, "trade_or_sanction_pressure_prob", 0.3),
-        ).normalized()
+        strategy = _strict_strategy_from_payload(strategy_payload).normalized()
         
         belief = BeliefState.from_context(context)
         cost = PolicyCost(
@@ -384,15 +287,8 @@ class LLMBestResponseSkill:
         cost: PolicyCost,
         round_id: int,
     ) -> dict[str, Any]:
-        rule_payoff = BestResponseSkill._payoff(role.role_id, strategy, belief, cost)
         if self.teacher is None or not self.use_llm_payoff:
-            return {
-                "payoff": rule_payoff,
-                "regret_estimate": max(0.0, 0.82 - rule_payoff),
-                "source": "rule_linear_fallback",
-                "reasoning": "LLM payoff judge disabled or unavailable.",
-                "deviation_candidate": {},
-            }
+            raise RuntimeError("DeepSeek payoff judge is required; no fallback is allowed.")
 
         prompt = json.dumps(
             {
@@ -449,28 +345,19 @@ class LLMBestResponseSkill:
             },
             {"role": "user", "content": prompt[:10000]},
         ]
-        try:
-            result = self.teacher.chat_json(messages, schema_hint={"type": "policy_payoff_judgement"})
-        except Exception as exc:
-            return {
-                "payoff": rule_payoff,
-                "regret_estimate": max(0.0, 0.82 - rule_payoff),
-                "source": "rule_payoff_after_llm_error",
-                "reasoning": f"LLM payoff judge failed; used rule fallback. error={type(exc).__name__}",
-                "deviation_candidate": {},
-            }
+        result = self.teacher.chat_json(messages, schema_hint={"type": "policy_payoff_judgement"})
 
         deviation = result.get("best_unilateral_deviation")
         if not isinstance(deviation, dict):
             deviation = {}
-        payoff = _clamp_float(result.get("payoff", result.get("payoff_estimate", result.get("score", rule_payoff))))
+        payoff = _required_float_field(result, "payoff")
         regret = result.get("regret_estimate", result.get("profitable_deviation_gain"))
         if regret is None:
             alternative_payoff = deviation.get("alternative_payoff", deviation.get("deviation_payoff"))
             if alternative_payoff is not None:
                 regret = max(0.0, _clamp_float(alternative_payoff) - payoff)
             else:
-                regret = max(0.0, 0.82 - payoff)
+                raise ValueError("DeepSeek payoff judgement missing regret_estimate.")
         reasoning = str(result.get("reasoning", result.get("rationale", ""))).strip()
         return {
             "payoff": round(payoff, 4),
@@ -491,6 +378,8 @@ class LLMEquilibriumJudge:
     """
 
     def __init__(self, teacher: TeacherClient | None = None) -> None:
+        if teacher is None:
+            raise RuntimeError("LLMEquilibriumJudge requires a DeepSeek teacher; no heuristic fallback is allowed.")
         self.teacher = teacher
 
     def check(
@@ -504,23 +393,8 @@ class LLMEquilibriumJudge:
         heuristic: dict[str, Any],
         role_personas: dict[str, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        base = {
-            "checked": False,
-            "source": "not_checked",
-            "quarter": quarter,
-            "round_id": round_id,
-            "is_nash_equilibrium": False,
-            "max_profitable_deviation_gain": float(heuristic.get("max_deviation_gain", 0.0) or 0.0),
-            "profitable_deviations": [],
-            "reasoning": "LLM equilibrium judge was not run.",
-            "heuristic": heuristic,
-        }
         if self.teacher is None:
-            return {
-                **base,
-                "source": "heuristic_only_no_deepseek",
-                "reasoning": "DeepSeek teacher is unavailable; convergence uses heuristic stability only.",
-            }
+            raise RuntimeError("DeepSeek equilibrium judge is required; no heuristic fallback is allowed.")
 
         recent_by_role: dict[str, AgentProposal] = {}
         for proposal in proposals:
@@ -576,24 +450,12 @@ class LLMEquilibriumJudge:
             },
             {"role": "user", "content": prompt[:12000]},
         ]
-        try:
-            result = self.teacher.chat_json(messages, schema_hint={"type": "nash_equilibrium_check"})
-        except Exception as exc:
-            return {
-                **base,
-                "source": "llm_equilibrium_error",
-                "reasoning": f"DeepSeek equilibrium judge failed; kept heuristic status only. error={type(exc).__name__}",
-            }
+        result = self.teacher.chat_json(messages, schema_hint={"type": "nash_equilibrium_check"})
 
         deviations = result.get("profitable_deviations", [])
         if not isinstance(deviations, list):
             deviations = []
-        max_gain = _clamp_float(
-            result.get(
-                "max_profitable_deviation_gain",
-                result.get("max_deviation_gain", heuristic.get("max_deviation_gain", 0.0)),
-            )
-        )
+        max_gain = _required_float_field(result, "max_profitable_deviation_gain")
         is_equilibrium = _truthy(result.get("is_nash_equilibrium", False)) and max_gain <= float(
             heuristic.get("deviation_gain_tau", 0.02) or 0.02
         )
