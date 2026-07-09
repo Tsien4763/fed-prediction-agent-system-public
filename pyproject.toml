@@ -1,0 +1,52 @@
+[project]
+name = "fed-prediction-agent-system"
+version = "0.1.0"
+description = "Multi-agent macro policy game system with Qwen3.5-0.8B equilibrium distillation."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "pyarrow>=16.0",
+  "requests>=2.32",
+  "scikit-learn>=1.5",
+  "statsmodels>=0.14",
+]
+
+[project.optional-dependencies]
+agent = [
+  "langgraph>=0.2.60",
+  "langchain-core>=0.3.0",
+]
+train = [
+  "accelerate>=1.0",
+  "datasets>=3.0",
+  "jinja2>=3.1",
+  "peft>=0.13",
+  "torch>=2.4",
+  "transformers>=4.56",
+  "trl>=0.12",
+]
+realtime = [
+  "confluent-kafka>=2.5",
+  "redis>=5.0",
+]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+
+[project.scripts]
+fed-game = "fed_game.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["src", "scripts", "tests"]
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]

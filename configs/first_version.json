@@ -1,0 +1,70 @@
+{
+  "model": {
+    "base_model": "Qwen/Qwen3.5-0.8B-Base",
+    "teacher_model": "deepseek-chat",
+    "max_sequence_length": 4096,
+    "trainable_model_simplification": "Only the trainable LLM is reduced to Qwen3.5-0.8B-Base; agent workflow, RAG, self-play, distillation, GRPO, and evaluation remain full first-version scope."
+  },
+  "paths": {
+    "registry": "data_registry.yaml",
+    "rag_index": "data/index/policy_context_index.jsonl",
+    "context_snapshots": "data/processed/context_snapshots.parquet",
+    "strategy_cards": "data/processed/strategy_cards.jsonl",
+    "artifacts_dir": "artifacts/first_version",
+    "teacher_dir": "artifacts/first_version/teacher",
+    "trace_dir": "artifacts/first_version/traces",
+    "train_dir": "artifacts/first_version/train",
+    "eval_dir": "artifacts/first_version/eval"
+  },
+  "personas": {
+    "usa_warsh": "policy_personas/warsh_policy/SKILL.md"
+  },
+  "teacher": {
+    "base_url_env": "DEEPSEEK_BASE_URL",
+    "api_key_env": "DEEPSEEK_API_KEY",
+    "model_env": "DEEPSEEK_MODEL",
+    "default_base_url": "https://api.deepseek.com",
+    "default_model": "deepseek-chat",
+    "allow_mock_without_key": true,
+    "timeout_seconds": 90
+  },
+  "self_play": {
+    "quarters": ["2024Q1", "2024Q2", "2024Q3", "2024Q4", "2025Q1", "2025Q2", "2025Q3", "2025Q4", "2026Q1", "2026Q2"],
+    "max_rounds": 40,
+    "stable_rounds_required": 10,
+    "strategy_epsilon": 0.025,
+    "deviation_gain_tau": 0.02,
+    "llm_payoff_judge": true,
+    "llm_equilibrium_check": true,
+    "require_llm_equilibrium_for_convergence": true,
+    "discount_memory": 0.92
+  },
+  "training": {
+    "dapt": {
+      "learning_rate": 0.00005,
+      "epochs": 1,
+      "micro_batch_size": 1,
+      "gradient_accumulation_steps": 16,
+      "max_sequence_length": 512
+    },
+    "sft": {
+      "learning_rate": 0.0001,
+      "epochs": 2,
+      "micro_batch_size": 1,
+      "gradient_accumulation_steps": 16,
+      "lora_r": 16,
+      "lora_alpha": 32,
+      "lora_dropout": 0.05,
+      "max_sequence_length": 512
+    },
+    "grpo": {
+      "learning_rate": 0.00003,
+      "epochs": 1,
+      "micro_batch_size": 2,
+      "gradient_accumulation_steps": 1,
+      "num_generations": 2,
+      "generation_batch_size": 2,
+      "max_completion_length": 256
+    }
+  }
+}

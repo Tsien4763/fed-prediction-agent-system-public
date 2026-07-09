@@ -1,0 +1,116 @@
+{
+  "artifact_type": "public_baseline_eval",
+  "generated_at": "2026-07-09T05:13:02.107510+00:00",
+  "label_fixture": "examples/public_eval/fomc_quarter_labels_2000_2026.csv",
+  "train_window": "2000Q1-2019Q4",
+  "validation_window": "2020Q1-2023Q4",
+  "train_quarters": 48,
+  "validation_quarters": 10,
+  "train_class_counts": {
+    "hike_25bp": 20,
+    "hold": 15,
+    "cut_25bp": 13
+  },
+  "validation_class_counts": {
+    "cut_25bp": 1,
+    "hold": 2,
+    "hike_25bp": 7
+  },
+  "baselines": {
+    "train_prior_majority": {
+      "description": "Uses train-window class frequencies as the probability vector for every validation quarter.",
+      "probabilities": {
+        "hike_25bp": 0.4166666666666667,
+        "hold": 0.3125,
+        "cut_25bp": 0.2708333333333333
+      },
+      "metrics": {
+        "accuracy": 0.7,
+        "direction_accuracy": 0.7,
+        "balanced_accuracy": 0.333333,
+        "macro_f1": 0.27451,
+        "non_hold_recall": 0.875,
+        "hold_collapse_index": 0.0,
+        "brier_score": 0.582118,
+        "brier_score_per_class": {
+          "hike_25bp": 0.290278,
+          "hold": 0.172656,
+          "cut_25bp": 0.119184
+        },
+        "log_loss": 0.976083,
+        "confusion_matrix": {
+          "hike_25bp": {
+            "hike_25bp": 7,
+            "hold": 0,
+            "cut_25bp": 0
+          },
+          "hold": {
+            "hike_25bp": 2,
+            "hold": 0,
+            "cut_25bp": 0
+          },
+          "cut_25bp": {
+            "hike_25bp": 1,
+            "hold": 0,
+            "cut_25bp": 0
+          }
+        },
+        "class_counts": {
+          "cut_25bp": 1,
+          "hold": 2,
+          "hike_25bp": 7
+        },
+        "predicted_class_counts": {
+          "hike_25bp": 10
+        },
+        "majority_class_baseline_accuracy": 0.7
+      }
+    },
+    "previous_quarter_persistence": {
+      "description": "Assigns 0.80 probability to the previous quarter's realized class and 0.10 to each other class.",
+      "metrics": {
+        "accuracy": 0.7,
+        "direction_accuracy": 0.7,
+        "balanced_accuracy": 0.619048,
+        "macro_f1": 0.507937,
+        "non_hold_recall": 0.875,
+        "hold_collapse_index": 0.017,
+        "brier_score": 0.48,
+        "brier_score_per_class": {
+          "hike_25bp": 0.171,
+          "hold": 0.233,
+          "cut_25bp": 0.076
+        },
+        "log_loss": 0.846976,
+        "confusion_matrix": {
+          "hike_25bp": {
+            "hike_25bp": 6,
+            "hold": 1,
+            "cut_25bp": 0
+          },
+          "hold": {
+            "hike_25bp": 1,
+            "hold": 0,
+            "cut_25bp": 1
+          },
+          "cut_25bp": {
+            "hike_25bp": 0,
+            "hold": 0,
+            "cut_25bp": 1
+          }
+        },
+        "class_counts": {
+          "cut_25bp": 1,
+          "hold": 2,
+          "hike_25bp": 7
+        },
+        "predicted_class_counts": {
+          "cut_25bp": 2,
+          "hold": 1,
+          "hike_25bp": 7
+        },
+        "majority_class_baseline_accuracy": 0.7
+      }
+    }
+  }
+}

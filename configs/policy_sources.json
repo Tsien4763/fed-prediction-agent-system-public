@@ -1,0 +1,65 @@
+{
+  "sources": [
+    {
+      "source_id": "fed_fomc_press_releases",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary.htm",
+      "parser": "generic_html",
+      "cadence": "daily",
+      "enabled": true,
+      "crawl_enabled": true,
+      "max_pages": 12,
+      "max_depth": 1,
+      "same_domain_only": true,
+      "allowed_url_patterns": [
+        "/newsevents/pressreleases/monetary\\d{8}a\\.htm$"
+      ],
+      "denied_url_patterns": [],
+      "respect_robots_txt": false,
+      "metadata": {
+        "institution": "Federal Reserve",
+        "document_type": "fomc_statement"
+      }
+    },
+    {
+      "source_id": "fed_speeches",
+      "url": "https://www.federalreserve.gov/newsevents/speech.htm",
+      "parser": "generic_html",
+      "cadence": "daily",
+      "enabled": true,
+      "crawl_enabled": true,
+      "max_pages": 12,
+      "max_depth": 1,
+      "same_domain_only": true,
+      "allowed_url_patterns": [
+        "/newsevents/speech/.*\\.htm$"
+      ],
+      "denied_url_patterns": [],
+      "respect_robots_txt": false,
+      "metadata": {
+        "institution": "Federal Reserve",
+        "document_type": "speech"
+      }
+    },
+    {
+      "source_id": "bis_central_bank_speeches",
+      "url": "https://www.bis.org/cbspeeches/",
+      "parser": "generic_html",
+      "cadence": "daily",
+      "enabled": true,
+      "crawl_enabled": true,
+      "max_pages": 12,
+      "max_depth": 1,
+      "same_domain_only": true,
+      "allowed_url_patterns": [
+        "/review/.*\\.htm$",
+        "/speeches/.*\\.htm$"
+      ],
+      "denied_url_patterns": [],
+      "respect_robots_txt": false,
+      "metadata": {
+        "institution": "BIS",
+        "document_type": "central_bank_speech"
+      }
+    }
+  ]
+}

@@ -1,0 +1,445 @@
+{
+  "artifact_type": "public_training_debug_manifest",
+  "status": "completed",
+  "generated_at": "2026-07-09T06:56:13.256090+00:00",
+  "scope": "Public rerun of self-play training data preparation, temporal split, and GRPO reward debug.",
+  "boundaries": [
+    "Does not publish private DeepSeek traces, LoRA adapter weights, or generated training datasets.",
+    "Uses rule-fallback self-play and public FRED/FOMC fixtures.",
+    "Adapter weight training is not executed unless the train extra and model weights are available locally."
+  ],
+  "commands": [
+    {
+      "step": "build_macro_panel",
+      "status": "completed",
+      "source": "examples/public_eval/fred_macro_quarterly_2000_2026.csv"
+    },
+    {
+      "step": "build_public_rag_index",
+      "status": "completed",
+      "source": "examples/public_eval/fomc_quarter_labels_2000_2026.csv"
+    },
+    {
+      "step": "historical_self_play",
+      "status": "completed",
+      "command": "python -m fed_game.cli self-play --quarter-start 2000Q1 --quarter-end 2026Q2 --max-rounds 1 --stable-rounds-required 1 --strategy-epsilon 1 --deviation-gain-tau 1",
+      "stdout_tail": "  [Game Engine] Rule-based best response (no LLM teacher)\n{\n  \"traces\": 106,\n  \"first_quarter\": \"2000Q1\",\n  \"last_quarter\": \"2026Q2\",\n  \"trace_path\": \".\\\\artifacts\\\\first_version\\\\traces\\\\rolling_self_play_traces.jsonl\",\n  \"equilibrium_distill\": \".\\\\artifacts\\\\first_version\\\\train\\\\equilibrium_distill.jsonl\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "prepare_training_data",
+      "status": "completed",
+      "command": "python -m fed_game.cli prepare-training-data --dapt-limit 200",
+      "stdout_tail": "{\n  \"dapt_corpus\": \".\\\\artifacts\\\\first_version\\\\train\\\\dapt_corpus.txt\",\n  \"first_version_sft\": \".\\\\artifacts\\\\first_version\\\\train\\\\first_version_sft.jsonl\",\n  \"compact_equilibrium_sft\": \".\\\\artifacts\\\\first_version\\\\train\\\\compact_equilibrium_sft.jsonl\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "split_training_data",
+      "status": "completed",
+      "command": "python -m fed_game.cli split-training-data",
+      "stdout_tail": "1\": 44,\n            \"2012\": 44,\n            \"2013\": 44,\n            \"2014\": 44,\n            \"2015\": 44,\n            \"2016\": 44,\n            \"2017\": 44,\n            \"2018\": 44,\n            \"2019\": 44\n          }\n        },\n        \"val\": {\n          \"path\": \".\\\\artifacts\\\\first_version\\\\splits\\\\compact_equilibrium_sft.val.jsonl\",\n          \"rows\": 176,\n          \"min_date\": \"2020-01-01\",\n          \"max_date\": \"2023-10-01\",\n          \"date_sources\": {\n            \"metadata.quarter\": 176\n          },\n          \"years\": {\n            \"2020\": 44,\n            \"2021\": 44,\n            \"2022\": 44,\n            \"2023\": 44\n          }\n        },\n        \"test\": {\n          \"path\": \".\\\\artifacts\\\\first_version\\\\splits\\\\compact_equilibrium_sft.test.jsonl\",\n          \"rows\": 110,\n          \"min_date\": \"2024-01-01\",\n          \"max_date\": \"2026-04-01\",\n          \"date_sources\": {\n            \"metadata.quarter\": 110\n          },\n          \"years\": {\n            \"2024\": 44,\n            \"2025\": 44,\n            \"2026\": 22\n          }\n        }\n      },\n      \"unassigned\": {\n        \"path\": \".\\\\artifacts\\\\first_version\\\\splits\\\\compact_equilibrium_sft.unassigned.jsonl\",\n        \"rows\": 0,\n        \"reasons\": {}\n      }\n    }\n  },\n  \"leakage_check\": {\n    \"passed\": true,\n    \"issues\": [],\n    \"warnings\": [],\n    \"datasets\": {\n      \"equilibrium_distill\": {\n        \"passed\": true,\n        \"issues\": [],\n        \"warnings\": []\n      },\n      \"first_version_sft\": {\n        \"passed\": true,\n        \"issues\": [],\n        \"warnings\": []\n      },\n      \"compact_equilibrium_sft\": {\n        \"passed\": true,\n        \"issues\": [],\n        \"warnings\": []\n      }\n    }\n  },\n  \"report_path\": \".\\\\artifacts\\\\first_version\\\\splits\\\\temporal_split_report.json\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "grpo_reward_dry_run",
+      "status": "completed",
+      "command": "python -m fed_game.cli score-grpo-rewards --train-file .\\artifacts\\first_version\\splits\\compact_equilibrium_sft.val.jsonl --output-path .\\artifacts\\first_version\\results\\public_grpo_reward_dry_run.json --limit 200",
+      "stdout_tail": "{\n  \"output_path\": \".\\\\artifacts\\\\first_version\\\\results\\\\public_grpo_reward_dry_run.json\",\n  \"rows_scored\": 176,\n  \"average_weighted_total\": 0.621348,\n  \"average_components\": {\n    \"evidence_traceable\": 1.0,\n    \"fed_probability_calibrated\": 0.326107,\n    \"fewer_convergence_rounds\": 1.0,\n    \"lower_regret\": 1.0,\n    \"no_future_leakage\": 1.0,\n    \"not_always_hold\": 0.299912,\n    \"overconfident_wrong_prediction\": 0.198144,\n    \"role_consistency\": 0.266778,\n    \"schema_valid\": 1.0,\n    \"stable_after_10_rounds\": 1.0,\n    \"unsupported_claims\": 0.0,\n    \"weighted_total\": 0.621348\n  },\n  \"issue_counts\": {\n    \"fed_probability_calibrated\": 11,\n    \"not_always_hold\": 33,\n    \"overconfident_wrong_prediction\": 33,\n    \"role_consistency\": 10\n  }\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "sft_lora_smoke",
+      "status": "completed",
+      "returncode": 0,
+      "command": "python -m fed_game.cli train-sft --train-file .\\artifacts\\first_version\\splits\\compact_equilibrium_sft.train.jsonl --output-dir .\\artifacts\\first_version\\adapters\\public_sft_smoke --max-steps 80",
+      "stdout_tail": "{'loss': '2.023', 'grad_norm': '2.179', 'learning_rate': '8.875e-05', 'epoch': '0.01136'}\n{'loss': '0.9143', 'grad_norm': '2.771', 'learning_rate': '7.625e-05', 'epoch': '0.02273'}\n{'loss': '0.4139', 'grad_norm': '1.435', 'learning_rate': '6.375e-05', 'epoch': '0.03409'}\n{'loss': '0.3546', 'grad_norm': '1.648', 'learning_rate': '5.125e-05', 'epoch': '0.04545'}\n{'loss': '0.3893', 'grad_norm': '1.423', 'learning_rate': '3.875e-05', 'epoch': '0.05682'}\n{'loss': '0.3708', 'grad_norm': '1.599', 'learning_rate': '2.625e-05', 'epoch': '0.06818'}\n{'loss': '0.3128', 'grad_norm': '2.084', 'learning_rate': '1.375e-05', 'epoch': '0.07955'}\n{'loss': '0.3469', 'grad_norm': '1.717', 'learning_rate': '1.25e-06', 'epoch': '0.09091'}\n{'train_runtime': '243.4', 'train_samples_per_second': '0.329', 'train_steps_per_second': '0.329', 'train_loss': '0.6407', 'epoch': '0.09091'}\n",
+      "stderr_tail": "0 [02:26<01:49,  3.64s/it]\n                                               \n\n 62%|\u2588\u2588\u2588\u2588\u2588\u2588\u258e   | 50/80 [02:26<01:49,  3.64s/it]\n 64%|\u2588\u2588\u2588\u2588\u2588\u2588\u258d   | 51/80 [02:30<01:46,  3.67s/it]\n 65%|\u2588\u2588\u2588\u2588\u2588\u2588\u258c   | 52/80 [02:34<01:44,  3.73s/it]\n 66%|\u2588\u2588\u2588\u2588\u2588\u2588\u258b   | 53/80 [02:38<01:43,  3.82s/it]\n 68%|\u2588\u2588\u2588\u2588\u2588\u2588\u258a   | 54/80 [02:42<01:37,  3.75s/it]\n 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 55/80 [02:45<01:33,  3.74s/it]\n 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 56/80 [02:49<01:27,  3.63s/it]\n 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 57/80 [02:52<01:24,  3.66s/it]\n 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e  | 58/80 [02:56<01:19,  3.60s/it]\n 74%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258d  | 59/80 [02:59<01:11,  3.38s/it]\n 75%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c  | 60/80 [03:02<01:05,  3.27s/it]\n                                               \n\n 75%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c  | 60/80 [03:02<01:05,  3.27s/it]\n 76%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b  | 61/80 [03:05<01:00,  3.17s/it]\n 78%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a  | 62/80 [03:08<00:57,  3.18s/it]\n 79%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589  | 63/80 [03:11<00:53,  3.13s/it]\n 80%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588  | 64/80 [03:14<00:49,  3.10s/it]\n 81%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f | 65/80 [03:17<00:45,  3.05s/it]\n 82%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e | 66/80 [03:20<00:42,  3.05s/it]\n 84%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258d | 67/80 [03:23<00:39,  3.03s/it]\n 85%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c | 68/80 [03:26<00:36,  3.05s/it]\n 86%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 69/80 [03:29<00:33,  3.00s/it]\n 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 70/80 [03:32<00:30,  3.01s/it]\n                                               \n\n 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 70/80 [03:32<00:30,  3.01s/it]\n 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 71/80 [03:35<00:26,  2.99s/it]\n 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588 | 72/80 [03:38<00:24,  3.09s/it]\n 91%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f| 73/80 [03:41<00:21,  3.07s/it]\n 92%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e| 74/80 [03:45<00:19,  3.20s/it]\n 94%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258d| 75/80 [03:47<00:15,  3.10s/it]\n 95%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c| 76/80 [03:50<00:12,  3.06s/it]\n 96%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b| 77/80 [03:53<00:09,  3.01s/it]\n 98%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a| 78/80 [03:56<00:05,  2.90s/it]\n 99%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 79/80 [03:59<00:02,  2.82s/it]\n100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 80/80 [04:01<00:00,  2.81s/it]\n                                               \n\n100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 80/80 [04:01<00:00,  2.81s/it]\n                                               \n\n100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 80/80 [04:03<00:00,  2.81s/it]\n100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 80/80 [04:03<00:00,  3.04s/it]\n"
+    },
+    {
+      "step": "grpo_lora_smoke",
+      "status": "completed",
+      "returncode": 0,
+      "command": "python -m fed_game.cli train-grpo --train-file .\\artifacts\\first_version\\splits\\compact_equilibrium_sft.train.jsonl --output-dir .\\artifacts\\first_version\\adapters\\public_grpo_smoke --base-adapter-dir .\\artifacts\\first_version\\adapters\\public_sft_smoke --max-steps 12 --learning-rate 0.00005 --max-completion-length 64",
+      "stdout_tail": "{'loss': '0', 'grad_norm': '0', 'learning_rate': '1.25e-05', 'num_tokens': '7426', 'completions/mean_length': '64', 'completions/min_length': '64', 'completions/max_length': '64', 'completions/clipped_ratio': '1', 'completions/mean_terminated_length': '0', 'completions/min_terminated_length': '0', 'completions/max_terminated_length': '0', 'rewards/grpo_reward_suite/mean': '-1', 'rewards/grpo_reward_suite/std': '0', 'reward': '-1', 'reward_std': '0', 'frac_reward_zero_std': '1', 'entropy': '0.2952', 'clip_ratio/low_mean': '0', 'clip_ratio/low_min': '0', 'clip_ratio/high_mean': '0', 'clip_ratio/high_max': '0', 'clip_ratio/region_mean': '0', 'step_time': '11.32', 'epoch': '0.01136'}\n{'train_runtime': '137', 'train_samples_per_second': '0.175', 'train_steps_per_second': '0.088', 'train_loss': '0', 'num_tokens': '8932', 'completions/mean_length': '64', 'completions/min_length': '64', 'completions/max_length': '64', 'completions/clipped_ratio': '1', 'completions/mean_terminated_length': '0', 'completions/min_terminated_length': '0', 'completions/max_terminated_length': '0', 'rewards/grpo_reward_suite/mean': '-1', 'rewards/grpo_reward_suite/std': '0', 'reward': '-1', 'reward_std': '0', 'frac_reward_zero_std': '1', 'entropy': '0.259', 'clip_ratio/low_mean': '0', 'clip_ratio/low_min': '0', 'clip_ratio/high_mean': '0', 'clip_ratio/high_max': '0', 'clip_ratio/region_mean': '0', 'step_time': '11.01', 'epoch': '0.01364'}\n",
+      "stderr_tail": "Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\n[transformers] `torch_dtype` is deprecated! Use `dtype` instead!\n[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d\n\nLoading weights:   0%|          | 0/320 [00:00<?, ?it/s]\nLoading weights:   0%|          | 1/320 [00:00<00:58,  5.47it/s]\nLoading weights:  47%|\u2588\u2588\u2588\u2588\u258b     | 151/320 [00:00<00:00, 655.61it/s]\nLoading weights:  78%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a  | 248/320 [00:00<00:00, 761.90it/s]\nLoading weights: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 320/320 [00:00<00:00, 680.21it/s]\n[transformers] The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'pad_token_id': 248044}.\n\n  0%|          | 0/12 [00:00<?, ?it/s]\n  8%|\u258a         | 1/12 [00:11<02:11, 11.99s/it]\n 17%|\u2588\u258b        | 2/12 [00:23<01:55, 11.55s/it]\n 25%|\u2588\u2588\u258c       | 3/12 [00:34<01:44, 11.64s/it]\n 33%|\u2588\u2588\u2588\u258e      | 4/12 [00:46<01:32, 11.57s/it]\n 42%|\u2588\u2588\u2588\u2588\u258f     | 5/12 [00:57<01:20, 11.45s/it]\n 50%|\u2588\u2588\u2588\u2588\u2588     | 6/12 [01:09<01:09, 11.53s/it]\n 58%|\u2588\u2588\u2588\u2588\u2588\u258a    | 7/12 [01:20<00:57, 11.47s/it]\n 67%|\u2588\u2588\u2588\u2588\u2588\u2588\u258b   | 8/12 [01:32<00:46, 11.51s/it]\n 75%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c  | 9/12 [01:42<00:33, 11.21s/it]\n 83%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e | 10/12 [01:53<00:22, 11.02s/it]\n                                               \n\n 83%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e | 10/12 [01:53<00:22, 11.02s/it]\n 92%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f| 11/12 [02:04<00:10, 10.98s/it]\n100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 12/12 [02:15<00:00, 11.04s/it]\n                                               \n\n100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 12/12 [02:16<00:00, 11.04s/it]\n100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 12/12 [02:16<00:00, 11.41s/it]\n"
+    },
+    {
+      "step": "grpo_adapter_val_inference",
+      "status": "completed",
+      "returncode": 0,
+      "command": "python -m fed_game.cli infer-adapter --adapter-dir .\\artifacts\\first_version\\adapters\\public_grpo_smoke --eval-file .\\artifacts\\first_version\\splits\\compact_equilibrium_sft.val.jsonl --output-path .\\artifacts\\first_version\\results\\public_grpo_smoke_val_predictions.jsonl --limit 16 --max-new-tokens 256 --batch-size 1",
+      "stdout_tail": "{\n  \"output_path\": \".\\\\artifacts\\\\first_version\\\\results\\\\public_grpo_smoke_val_predictions.jsonl\",\n  \"samples\": 16,\n  \"valid_json\": 16,\n  \"valid_json_rate\": 1.0\n}\n",
+      "stderr_tail": "Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\n[transformers] `torch_dtype` is deprecated! Use `dtype` instead!\n[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d\n\nLoading weights:   0%|          | 0/320 [00:00<?, ?it/s]\nLoading weights:  25%|\u2588\u2588\u258c       | 80/320 [00:00<00:00, 781.73it/s]\nLoading weights:  69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 220/320 [00:00<00:00, 1115.62it/s]\nLoading weights: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 320/320 [00:00<00:00, 1152.15it/s]\n"
+    },
+    {
+      "step": "grpo_adapter_val_scoring",
+      "status": "completed",
+      "returncode": 0,
+      "command": "python -m fed_game.cli score-grpo-predictions --prediction-file .\\artifacts\\first_version\\results\\public_grpo_smoke_val_predictions.jsonl --output-path .\\artifacts\\first_version\\results\\public_grpo_smoke_val_report.json",
+      "stdout_tail": "{\n  \"output_path\": \".\\\\artifacts\\\\first_version\\\\results\\\\public_grpo_smoke_val_report.json\",\n  \"rows_scored\": 16,\n  \"valid_json_rate\": 1.0,\n  \"average_weighted_total\": 0.45967,\n  \"average_components\": {\n    \"evidence_traceable\": 1.0,\n    \"fed_probability_calibrated\": 0.237259,\n    \"fewer_convergence_rounds\": 1.0,\n    \"lower_regret\": 0.665725,\n    \"no_future_leakage\": 1.0,\n    \"not_always_hold\": -0.625,\n    \"overconfident_wrong_prediction\": 0.00575,\n    \"role_consistency\": 0.211025,\n    \"schema_valid\": 1.0,\n    \"stable_after_10_rounds\": 1.0,\n    \"unsupported_claims\": 0.0,\n    \"weighted_total\": 0.45967\n  },\n  \"predicted_class_counts\": {\n    \"hold\": 16\n  },\n  \"forecast_row_accuracy\": 0.3125,\n  \"forecast_row_brier\": 0.762741,\n  \"forecast_row_log_loss\": 1.217522,\n  \"forecast_quarter_accuracy\": 0.5,\n  \"forecast_future_leakage_rate\": 0.0,\n  \"issue_counts\": {\n    \"fed_probability_calibrated\": 4,\n    \"not_always_hold\": 16,\n    \"overconfident_wrong_prediction\": 11,\n    \"role_consistency\": 2\n  }\n}\n",
+      "stderr_tail": ""
+    }
+  ],
+  "outputs": {
+    "trace_path": "artifacts/first_version/traces/rolling_self_play_traces.jsonl",
+    "train_dir": "artifacts/first_version/train",
+    "split_dir": "artifacts/first_version/splits",
+    "reward_report": "artifacts/first_version/results/public_grpo_reward_dry_run.json"
+  },
+  "counts": {
+    "trace_rows": 106,
+    "equilibrium_distill_rows": 1166,
+    "first_version_sft_rows": 1166,
+    "compact_equilibrium_sft_rows": 1166,
+    "compact_train_rows": 880,
+    "compact_val_rows": 176,
+    "compact_test_rows": 110
+  },
+  "temporal_split": {
+    "requested_ranges": {
+      "train": "2000-2020",
+      "val": "2020-2023",
+      "test": "2024-2026"
+    },
+    "effective_windows": [
+      {
+        "name": "train",
+        "start": "2000-01-01",
+        "end": "2019-12-31",
+        "requested_range": "2000-2020",
+        "note": "2020 is assigned to validation to avoid train/validation overlap."
+      },
+      {
+        "name": "val",
+        "start": "2020-01-01",
+        "end": "2023-12-31",
+        "requested_range": "2020-2023",
+        "note": ""
+      },
+      {
+        "name": "test",
+        "start": "2024-01-01",
+        "end": "2026-12-31",
+        "requested_range": "2024-2026",
+        "note": ""
+      }
+    ],
+    "overlap_resolution": "The requested train/val shorthand overlaps in 2020; 2020 rows are assigned to val.",
+    "output_dir": ".\\artifacts\\first_version\\splits",
+    "datasets": {
+      "equilibrium_distill": {
+        "input_path": ".\\artifacts\\first_version\\train\\equilibrium_distill.jsonl",
+        "total_rows": 1166,
+        "splits": {
+          "train": {
+            "path": ".\\artifacts\\first_version\\splits\\equilibrium_distill.train.jsonl",
+            "rows": 880,
+            "min_date": "2000-01-01",
+            "max_date": "2019-10-01",
+            "date_sources": {
+              "metadata.quarter": 880
+            },
+            "years": {
+              "2000": 44,
+              "2001": 44,
+              "2002": 44,
+              "2003": 44,
+              "2004": 44,
+              "2005": 44,
+              "2006": 44,
+              "2007": 44,
+              "2008": 44,
+              "2009": 44,
+              "2010": 44,
+              "2011": 44,
+              "2012": 44,
+              "2013": 44,
+              "2014": 44,
+              "2015": 44,
+              "2016": 44,
+              "2017": 44,
+              "2018": 44,
+              "2019": 44
+            }
+          },
+          "val": {
+            "path": ".\\artifacts\\first_version\\splits\\equilibrium_distill.val.jsonl",
+            "rows": 176,
+            "min_date": "2020-01-01",
+            "max_date": "2023-10-01",
+            "date_sources": {
+              "metadata.quarter": 176
+            },
+            "years": {
+              "2020": 44,
+              "2021": 44,
+              "2022": 44,
+              "2023": 44
+            }
+          },
+          "test": {
+            "path": ".\\artifacts\\first_version\\splits\\equilibrium_distill.test.jsonl",
+            "rows": 110,
+            "min_date": "2024-01-01",
+            "max_date": "2026-04-01",
+            "date_sources": {
+              "metadata.quarter": 110
+            },
+            "years": {
+              "2024": 44,
+              "2025": 44,
+              "2026": 22
+            }
+          }
+        },
+        "unassigned": {
+          "path": ".\\artifacts\\first_version\\splits\\equilibrium_distill.unassigned.jsonl",
+          "rows": 0,
+          "reasons": {}
+        }
+      },
+      "first_version_sft": {
+        "input_path": ".\\artifacts\\first_version\\train\\first_version_sft.jsonl",
+        "total_rows": 1166,
+        "splits": {
+          "train": {
+            "path": ".\\artifacts\\first_version\\splits\\first_version_sft.train.jsonl",
+            "rows": 880,
+            "min_date": "2000-01-01",
+            "max_date": "2019-10-01",
+            "date_sources": {
+              "metadata.quarter": 880
+            },
+            "years": {
+              "2000": 44,
+              "2001": 44,
+              "2002": 44,
+              "2003": 44,
+              "2004": 44,
+              "2005": 44,
+              "2006": 44,
+              "2007": 44,
+              "2008": 44,
+              "2009": 44,
+              "2010": 44,
+              "2011": 44,
+              "2012": 44,
+              "2013": 44,
+              "2014": 44,
+              "2015": 44,
+              "2016": 44,
+              "2017": 44,
+              "2018": 44,
+              "2019": 44
+            }
+          },
+          "val": {
+            "path": ".\\artifacts\\first_version\\splits\\first_version_sft.val.jsonl",
+            "rows": 176,
+            "min_date": "2020-01-01",
+            "max_date": "2023-10-01",
+            "date_sources": {
+              "metadata.quarter": 176
+            },
+            "years": {
+              "2020": 44,
+              "2021": 44,
+              "2022": 44,
+              "2023": 44
+            }
+          },
+          "test": {
+            "path": ".\\artifacts\\first_version\\splits\\first_version_sft.test.jsonl",
+            "rows": 110,
+            "min_date": "2024-01-01",
+            "max_date": "2026-04-01",
+            "date_sources": {
+              "metadata.quarter": 110
+            },
+            "years": {
+              "2024": 44,
+              "2025": 44,
+              "2026": 22
+            }
+          }
+        },
+        "unassigned": {
+          "path": ".\\artifacts\\first_version\\splits\\first_version_sft.unassigned.jsonl",
+          "rows": 0,
+          "reasons": {}
+        }
+      },
+      "compact_equilibrium_sft": {
+        "input_path": ".\\artifacts\\first_version\\train\\compact_equilibrium_sft.jsonl",
+        "total_rows": 1166,
+        "splits": {
+          "train": {
+            "path": ".\\artifacts\\first_version\\splits\\compact_equilibrium_sft.train.jsonl",
+            "rows": 880,
+            "min_date": "2000-01-01",
+            "max_date": "2019-10-01",
+            "date_sources": {
+              "metadata.quarter": 880
+            },
+            "years": {
+              "2000": 44,
+              "2001": 44,
+              "2002": 44,
+              "2003": 44,
+              "2004": 44,
+              "2005": 44,
+              "2006": 44,
+              "2007": 44,
+              "2008": 44,
+              "2009": 44,
+              "2010": 44,
+              "2011": 44,
+              "2012": 44,
+              "2013": 44,
+              "2014": 44,
+              "2015": 44,
+              "2016": 44,
+              "2017": 44,
+              "2018": 44,
+              "2019": 44
+            }
+          },
+          "val": {
+            "path": ".\\artifacts\\first_version\\splits\\compact_equilibrium_sft.val.jsonl",
+            "rows": 176,
+            "min_date": "2020-01-01",
+            "max_date": "2023-10-01",
+            "date_sources": {
+              "metadata.quarter": 176
+            },
+            "years": {
+              "2020": 44,
+              "2021": 44,
+              "2022": 44,
+              "2023": 44
+            }
+          },
+          "test": {
+            "path": ".\\artifacts\\first_version\\splits\\compact_equilibrium_sft.test.jsonl",
+            "rows": 110,
+            "min_date": "2024-01-01",
+            "max_date": "2026-04-01",
+            "date_sources": {
+              "metadata.quarter": 110
+            },
+            "years": {
+              "2024": 44,
+              "2025": 44,
+              "2026": 22
+            }
+          }
+        },
+        "unassigned": {
+          "path": ".\\artifacts\\first_version\\splits\\compact_equilibrium_sft.unassigned.jsonl",
+          "rows": 0,
+          "reasons": {}
+        }
+      }
+    },
+    "leakage_check": {
+      "passed": true,
+      "issues": [],
+      "warnings": [],
+      "datasets": {
+        "equilibrium_distill": {
+          "passed": true,
+          "issues": [],
+          "warnings": []
+        },
+        "first_version_sft": {
+          "passed": true,
+          "issues": [],
+          "warnings": []
+        },
+        "compact_equilibrium_sft": {
+          "passed": true,
+          "issues": [],
+          "warnings": []
+        }
+      }
+    }
+  },
+  "reward_dry_run": {
+    "rows_scored": 176,
+    "batch_hold_collapse_penalty": 1.0,
+    "predicted_class_counts": {
+      "hold": 88,
+      "hike_25bp": 88
+    },
+    "average_components": {
+      "evidence_traceable": 1.0,
+      "fed_probability_calibrated": 0.326107,
+      "fewer_convergence_rounds": 1.0,
+      "lower_regret": 1.0,
+      "no_future_leakage": 1.0,
+      "not_always_hold": 0.299912,
+      "overconfident_wrong_prediction": 0.198144,
+      "role_consistency": 0.266778,
+      "schema_valid": 1.0,
+      "stable_after_10_rounds": 1.0,
+      "unsupported_claims": 0.0,
+      "weighted_total": 0.621348
+    },
+    "issue_counts": {
+      "fed_probability_calibrated": 11,
+      "not_always_hold": 33,
+      "overconfident_wrong_prediction": 33,
+      "role_consistency": 10
+    }
+  },
+  "adapter_training": {
+    "status": "smoke_completed",
+    "scope": "Public LoRA SFT/GRPO training smoke; adapters are ignored by git.",
+    "sft": {
+      "output_dir": "artifacts/first_version/adapters/public_sft_smoke",
+      "exists": true,
+      "key_files": [
+        "adapter_config.json",
+        "adapter_model.safetensors",
+        "tokenizer_config.json"
+      ],
+      "command_status": "completed",
+      "max_steps": 80
+    },
+    "grpo": {
+      "output_dir": "artifacts/first_version/adapters/public_grpo_smoke",
+      "exists": true,
+      "key_files": [
+        "adapter_config.json",
+        "adapter_model.safetensors",
+        "tokenizer_config.json"
+      ],
+      "command_status": "completed",
+      "max_steps": 12
+    },
+    "torch": {
+      "version": "2.11.0+cu128",
+      "cuda_available": true,
+      "cuda_device": "NVIDIA GeForce RTX 3070"
+    },
+    "note": "This verifies the training code path; it is not a trained forecasting model."
+  },
+  "adapter_inference": {
+    "status": "completed",
+    "scope": "Validation generation/scoring from the public GRPO smoke adapter.",
+    "limit": 16,
+    "max_new_tokens": 256,
+    "prediction_file": "artifacts/first_version/results/public_grpo_smoke_val_predictions.jsonl",
+    "report_file": "artifacts/first_version/results/public_grpo_smoke_val_report.json",
+    "samples": 16,
+    "valid_json_rate": 1.0,
+    "weighted_reward": 0.45967,
+    "predicted_class_counts": {
+      "hold": 16
+    },
+    "forecast_row_accuracy": 0.3125,
+    "forecast_row_brier": 0.762741,
+    "forecast_future_leakage_rate": 0.0,
+    "note": "This is a smoke adapter evaluation; poor generation quality is expected at this step count."
+  }
+}

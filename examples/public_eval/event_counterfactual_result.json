@@ -1,0 +1,264 @@
+{
+  "artifact_type": "public_event_counterfactual_result",
+  "status": "completed",
+  "generated_at": "2026-07-09T04:45:41.309718+00:00",
+  "event": {
+    "event_type": "p5_game_counterfactual",
+    "as_of": "2026-05-06T13:45:00Z",
+    "source_ids": [
+      "public_event_wire",
+      "public_fomc_context"
+    ]
+  },
+  "event_frequency_claim": "The forecasting labels remain quarterly. The event runtime is event-driven and accepts daily or intraday timestamps, then maps each shock to the active quarter.",
+  "counterfactual": {
+    "quarter": "2026Q2",
+    "scenario_name": "event_level_energy_and_geopolitical_stress",
+    "overrides": {
+      "energy_risk": 0.82,
+      "geopolitical_escalation": 0.74,
+      "dollar_liquidity_pressure": 0.62
+    },
+    "fed_probability_delta": {
+      "hike_25bp": 0.0063,
+      "hold": -0.0062,
+      "cut_25bp": -0.0001
+    },
+    "top_p5_impacts": [
+      {
+        "cluster_id": "CHN",
+        "impact_label": "external-pressure shock",
+        "strategy_shift_l1": 0.39321,
+        "hawkish_pressure_delta": -0.06951,
+        "external_pressure_delta": 0.323701,
+        "top_strategy_shift": {
+          "scope": "cluster:CHN",
+          "field": "trade_or_sanction_pressure_prob",
+          "factual": 0.335299,
+          "counterfactual": 0.659,
+          "delta": 0.323701
+        }
+      },
+      {
+        "cluster_id": "RUS",
+        "impact_label": "external-pressure shock",
+        "strategy_shift_l1": 0.391977,
+        "hawkish_pressure_delta": -0.068276,
+        "external_pressure_delta": 0.323701,
+        "top_strategy_shift": {
+          "scope": "cluster:RUS",
+          "field": "trade_or_sanction_pressure_prob",
+          "factual": 0.335299,
+          "counterfactual": 0.659,
+          "delta": 0.323701
+        }
+      },
+      {
+        "cluster_id": "GBR",
+        "impact_label": "external-pressure shock",
+        "strategy_shift_l1": 0.391977,
+        "hawkish_pressure_delta": -0.068276,
+        "external_pressure_delta": 0.323701,
+        "top_strategy_shift": {
+          "scope": "cluster:GBR",
+          "field": "trade_or_sanction_pressure_prob",
+          "factual": 0.335299,
+          "counterfactual": 0.659,
+          "delta": 0.323701
+        }
+      },
+      {
+        "cluster_id": "FRA",
+        "impact_label": "external-pressure shock",
+        "strategy_shift_l1": 0.391977,
+        "hawkish_pressure_delta": -0.068276,
+        "external_pressure_delta": 0.323701,
+        "top_strategy_shift": {
+          "scope": "cluster:FRA",
+          "field": "trade_or_sanction_pressure_prob",
+          "factual": 0.335299,
+          "counterfactual": 0.659,
+          "delta": 0.323701
+        }
+      },
+      {
+        "cluster_id": "USA",
+        "impact_label": "external-pressure shock",
+        "strategy_shift_l1": 0.370852,
+        "hawkish_pressure_delta": -0.063849,
+        "external_pressure_delta": 0.30575,
+        "top_strategy_shift": {
+          "scope": "cluster:USA",
+          "field": "trade_or_sanction_pressure_prob",
+          "factual": 0.330206,
+          "counterfactual": 0.635955,
+          "delta": 0.30575
+        }
+      }
+    ],
+    "top_strategy_shifts": [
+      {
+        "scope": "cluster:CHN",
+        "field": "trade_or_sanction_pressure_prob",
+        "factual": 0.335299,
+        "counterfactual": 0.659,
+        "delta": 0.323701
+      },
+      {
+        "scope": "cluster:FRA",
+        "field": "trade_or_sanction_pressure_prob",
+        "factual": 0.335299,
+        "counterfactual": 0.659,
+        "delta": 0.323701
+      },
+      {
+        "scope": "cluster:GBR",
+        "field": "trade_or_sanction_pressure_prob",
+        "factual": 0.335299,
+        "counterfactual": 0.659,
+        "delta": 0.323701
+      },
+      {
+        "scope": "cluster:RUS",
+        "field": "trade_or_sanction_pressure_prob",
+        "factual": 0.335299,
+        "counterfactual": 0.659,
+        "delta": 0.323701
+      },
+      {
+        "scope": "cluster:USA",
+        "field": "trade_or_sanction_pressure_prob",
+        "factual": 0.330206,
+        "counterfactual": 0.635955,
+        "delta": 0.30575
+      }
+    ],
+    "top_belief_shifts": [
+      {
+        "field": "geopolitical_escalation",
+        "factual": 0.359175,
+        "counterfactual": 0.74,
+        "delta": 0.380825,
+        "role_id": "chn_pboc"
+      },
+      {
+        "field": "geopolitical_escalation",
+        "factual": 0.359175,
+        "counterfactual": 0.74,
+        "delta": 0.380825,
+        "role_id": "chn_trade"
+      },
+      {
+        "field": "geopolitical_escalation",
+        "factual": 0.359175,
+        "counterfactual": 0.74,
+        "delta": 0.380825,
+        "role_id": "fra_euro"
+      },
+      {
+        "field": "geopolitical_escalation",
+        "factual": 0.359175,
+        "counterfactual": 0.74,
+        "delta": 0.380825,
+        "role_id": "gbr_boe"
+      },
+      {
+        "field": "geopolitical_escalation",
+        "factual": 0.359175,
+        "counterfactual": 0.74,
+        "delta": 0.380825,
+        "role_id": "rus_energy"
+      }
+    ],
+    "evidence_delta": {
+      "added": [
+        "External shock layer: energy=0.66, geopol=0.66, term_premium=0.47.",
+        "FOMC path: hold=0.52, hike=0.38, cut=0.10.",
+        "usa_fomc_hawk: hawkish=0.66, hike=0.38, payoff=0.75.",
+        "usa_treasury: hawkish=0.52, hike=0.28, payoff=0.71.",
+        "usa_warsh: hawkish=0.68, hike=0.37, payoff=0.77."
+      ],
+      "removed": [
+        "External shock layer: energy=0.34, geopol=0.34, term_premium=0.39.",
+        "FOMC path: hold=0.52, hike=0.37, cut=0.10.",
+        "usa_fomc_hawk: hawkish=0.66, hike=0.38, payoff=0.78.",
+        "usa_treasury: hawkish=0.52, hike=0.28, payoff=0.73.",
+        "usa_warsh: hawkish=0.68, hike=0.37, payoff=0.79."
+      ]
+    }
+  },
+  "risk_attribution": {
+    "method": "predictive_attribution",
+    "analysis_scope": "rolling_prediction_attribution_with_p5_counterfactual",
+    "top_counterfactual_impacts": [
+      {
+        "cluster_id": "CHN",
+        "strategy_shift_l1": 0.39321,
+        "hawkish_pressure_delta": -0.06951,
+        "external_pressure_delta": 0.323701,
+        "top_strategy_shift": {
+          "scope": "cluster:CHN",
+          "field": "trade_or_sanction_pressure_prob",
+          "factual": 0.335299,
+          "counterfactual": 0.659,
+          "delta": 0.323701
+        },
+        "impact_label": "external-pressure shock",
+        "fed_decision_delta": {
+          "hike_25bp": 0.0063,
+          "hold": -0.0062,
+          "cut_25bp": -0.0001
+        }
+      },
+      {
+        "cluster_id": "RUS",
+        "strategy_shift_l1": 0.391977,
+        "hawkish_pressure_delta": -0.068276,
+        "external_pressure_delta": 0.323701,
+        "top_strategy_shift": {
+          "scope": "cluster:RUS",
+          "field": "trade_or_sanction_pressure_prob",
+          "factual": 0.335299,
+          "counterfactual": 0.659,
+          "delta": 0.323701
+        },
+        "impact_label": "external-pressure shock",
+        "fed_decision_delta": {
+          "hike_25bp": 0.0063,
+          "hold": -0.0062,
+          "cut_25bp": -0.0001
+        }
+      },
+      {
+        "cluster_id": "GBR",
+        "strategy_shift_l1": 0.391977,
+        "hawkish_pressure_delta": -0.068276,
+        "external_pressure_delta": 0.323701,
+        "top_strategy_shift": {
+          "scope": "cluster:GBR",
+          "field": "trade_or_sanction_pressure_prob",
+          "factual": 0.335299,
+          "counterfactual": 0.659,
+          "delta": 0.323701
+        },
+        "impact_label": "external-pressure shock",
+        "fed_decision_delta": {
+          "hike_25bp": 0.0063,
+          "hold": -0.0062,
+          "cut_25bp": -0.0001
+        }
+      }
+    ]
+  },
+  "archive_record": {
+    "run_id": "run_0001",
+    "has_prediction": true,
+    "has_evidence_chain": true,
+    "has_strategic_counterfactual": true
+  },
+  "boundaries": [
+    "This artifact validates event-triggered five-cluster counterfactual routing.",
+    "It is a bounded one-round public rerun using public fixtures and rule fallback when no DeepSeek key is present.",
+    "It does not claim intraday Fed label evaluation because the public FOMC labels are quarterly."
+  ]
+}

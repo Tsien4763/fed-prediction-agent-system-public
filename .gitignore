@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+.venv/
+.venv*/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment
+.env
+.env.local
+
+# Data (large files)
+data/
+data/raw/
+data/processed/
+data/inventory/
+data/index/
+data/predictions/
+data/triggers/
+raw/**
+!raw/
+!raw/**/
+!raw/**/.gitkeep
+*.pkl
+*.h5
+*.parquet
+*.zip
+*.xlsx
+*.csv
+*.jsonl
+!examples/public_eval/*.csv
+!examples/public_eval/*.jsonl
+
+# Models
+*.pth
+*.pt
+checkpoints/
+artifacts/
+*.safetensors
+
+# Logs
+*.log
+logs/
+
+# Private reports / write-up material
+docs/
+policy_personas/**/references/research/

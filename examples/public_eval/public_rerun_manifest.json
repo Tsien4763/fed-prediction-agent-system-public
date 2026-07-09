@@ -1,0 +1,305 @@
+{
+  "artifact_type": "public_eval_rerun_manifest",
+  "status": "completed",
+  "generated_at": "2026-07-09T04:32:53.462279+00:00",
+  "scope": "Public reproducibility protocol for validation forecasting comparison.",
+  "boundaries": [
+    "Does not publish private DeepSeek traces, LoRA adapter weights, or generated training datasets.",
+    "Uses rule-fallback self-play for the public Agent row.",
+    "Validation fixture has 10 labeled quarters; metrics are diagnostic, not production claims."
+  ],
+  "commands": [
+    {
+      "step": "build_macro_panel",
+      "status": "completed",
+      "source": "examples/public_eval/fred_macro_quarterly_2000_2026.csv"
+    },
+    {
+      "step": "validation_self_play",
+      "status": "completed",
+      "command": "python -m fed_game.cli self-play --quarter-start 2020Q1 --quarter-end 2023Q4 --max-rounds 3 --stable-rounds-required 1 --strategy-epsilon 1 --deviation-gain-tau 1",
+      "stdout_tail": "  [Game Engine] Rule-based best response (no LLM teacher)\n{\n  \"traces\": 16,\n  \"first_quarter\": \"2020Q1\",\n  \"last_quarter\": \"2023Q4\",\n  \"trace_path\": \".\\\\artifacts\\\\first_version\\\\traces\\\\rolling_self_play_traces.jsonl\",\n  \"equilibrium_distill\": \".\\\\artifacts\\\\first_version\\\\train\\\\equilibrium_distill.jsonl\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "forecast_eval",
+      "status": "completed",
+      "command": "python -m fed_game.cli evaluate-forecasting --trace-path .\\artifacts\\first_version\\traces\\rolling_self_play_traces.jsonl --output-path .\\artifacts\\first_version\\results\\public_val_rule_self_play_macro_eval.json",
+      "stdout_tail": "{\n  \"output_path\": \".\\\\artifacts\\\\first_version\\\\results\\\\public_val_rule_self_play_macro_eval.json\",\n  \"trace_count\": 16,\n  \"evaluated_quarters\": 10,\n  \"accuracy\": 0.7,\n  \"brier_score\": 0.479206,\n  \"log_loss\": 0.761562,\n  \"future_leakage_rate\": 0.0,\n  \"convergence_rate\": 1.0,\n  \"avg_rounds\": 1.0\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "public_result_generation",
+      "status": "completed",
+      "command": "python scripts/generate_public_results.py --trace-path .\\artifacts\\first_version\\traces\\rolling_self_play_traces.jsonl",
+      "stdout_tail": "{\n  \"output_dir\": \"examples\\\\public_eval\",\n  \"files\": [\n    \"baseline_results.json\",\n    \"fomc_quarter_labels_2000_2026.csv\",\n    \"forecasting_comparison.json\",\n    \"fred_macro_quarterly_2000_2026.csv\",\n    \"fred_macro_sample_2020_2024.csv\",\n    \"local_adapter_result_card.json\",\n    \"public_rerun_manifest.json\"\n  ]\n}\n",
+      "stderr_tail": ""
+    }
+  ],
+  "outputs": {
+    "trace_path": "artifacts/first_version/traces/rolling_self_play_traces.jsonl",
+    "forecast_eval_path": "artifacts/first_version/results/public_val_rule_self_play_macro_eval.json",
+    "forecasting_comparison_path": "examples/public_eval/forecasting_comparison.json"
+  },
+  "forecast_eval_summary": {
+    "evaluated_quarters": 10,
+    "accuracy": 0.7,
+    "brier_score": 0.479206,
+    "log_loss": 0.761562,
+    "future_leakage_rate": 0.0
+  },
+  "comparison_metrics": {
+    "train_prior_majority": {
+      "accuracy": 0.7,
+      "direction_accuracy": 0.7,
+      "balanced_accuracy": 0.333333,
+      "macro_f1": 0.27451,
+      "non_hold_recall": 0.875,
+      "hold_collapse_index": 0.0,
+      "brier_score": 0.582118,
+      "brier_score_per_class": {
+        "hike_25bp": 0.290278,
+        "hold": 0.172656,
+        "cut_25bp": 0.119184
+      },
+      "log_loss": 0.976083,
+      "confusion_matrix": {
+        "hike_25bp": {
+          "hike_25bp": 7,
+          "hold": 0,
+          "cut_25bp": 0
+        },
+        "hold": {
+          "hike_25bp": 2,
+          "hold": 0,
+          "cut_25bp": 0
+        },
+        "cut_25bp": {
+          "hike_25bp": 1,
+          "hold": 0,
+          "cut_25bp": 0
+        }
+      },
+      "class_counts": {
+        "cut_25bp": 1,
+        "hold": 2,
+        "hike_25bp": 7
+      },
+      "predicted_class_counts": {
+        "hike_25bp": 10
+      },
+      "majority_class_baseline_accuracy": 0.7
+    },
+    "previous_quarter_persistence": {
+      "accuracy": 0.7,
+      "direction_accuracy": 0.7,
+      "balanced_accuracy": 0.619048,
+      "macro_f1": 0.507937,
+      "non_hold_recall": 0.875,
+      "hold_collapse_index": 0.017,
+      "brier_score": 0.48,
+      "brier_score_per_class": {
+        "hike_25bp": 0.171,
+        "hold": 0.233,
+        "cut_25bp": 0.076
+      },
+      "log_loss": 0.846976,
+      "confusion_matrix": {
+        "hike_25bp": {
+          "hike_25bp": 6,
+          "hold": 1,
+          "cut_25bp": 0
+        },
+        "hold": {
+          "hike_25bp": 1,
+          "hold": 0,
+          "cut_25bp": 1
+        },
+        "cut_25bp": {
+          "hike_25bp": 0,
+          "hold": 0,
+          "cut_25bp": 1
+        }
+      },
+      "class_counts": {
+        "cut_25bp": 1,
+        "hold": 2,
+        "hike_25bp": 7
+      },
+      "predicted_class_counts": {
+        "cut_25bp": 2,
+        "hold": 1,
+        "hike_25bp": 7
+      },
+      "majority_class_baseline_accuracy": 0.7
+    },
+    "naive_macro_logistic": {
+      "accuracy": 0.8,
+      "direction_accuracy": 0.8,
+      "balanced_accuracy": 0.666667,
+      "macro_f1": 0.533333,
+      "non_hold_recall": 1.0,
+      "hold_collapse_index": 0.0,
+      "brier_score": 0.329211,
+      "brier_score_per_class": {
+        "hike_25bp": 0.057598,
+        "hold": 0.162057,
+        "cut_25bp": 0.109556
+      },
+      "log_loss": 0.690573,
+      "confusion_matrix": {
+        "hike_25bp": {
+          "hike_25bp": 7,
+          "hold": 0,
+          "cut_25bp": 0
+        },
+        "hold": {
+          "hike_25bp": 1,
+          "hold": 0,
+          "cut_25bp": 1
+        },
+        "cut_25bp": {
+          "hike_25bp": 0,
+          "hold": 0,
+          "cut_25bp": 1
+        }
+      },
+      "class_counts": {
+        "cut_25bp": 1,
+        "hold": 2,
+        "hike_25bp": 7
+      },
+      "predicted_class_counts": {
+        "cut_25bp": 2,
+        "hike_25bp": 8
+      },
+      "majority_class_baseline_accuracy": 0.7
+    },
+    "naive_macro_ordered_probit": {
+      "accuracy": 0.9,
+      "direction_accuracy": 0.9,
+      "balanced_accuracy": 0.666667,
+      "macro_f1": 0.6,
+      "non_hold_recall": 0.875,
+      "hold_collapse_index": 0.055886,
+      "brier_score": 0.191285,
+      "brier_score_per_class": {
+        "hike_25bp": 0.039005,
+        "hold": 0.087954,
+        "cut_25bp": 0.064327
+      },
+      "log_loss": 0.325221,
+      "confusion_matrix": {
+        "hike_25bp": {
+          "hike_25bp": 7,
+          "hold": 0,
+          "cut_25bp": 0
+        },
+        "hold": {
+          "hike_25bp": 0,
+          "hold": 2,
+          "cut_25bp": 0
+        },
+        "cut_25bp": {
+          "hike_25bp": 0,
+          "hold": 1,
+          "cut_25bp": 0
+        }
+      },
+      "class_counts": {
+        "cut_25bp": 1,
+        "hold": 2,
+        "hike_25bp": 7
+      },
+      "predicted_class_counts": {
+        "hold": 3,
+        "hike_25bp": 7
+      },
+      "majority_class_baseline_accuracy": 0.7
+    },
+    "rolling_var_rate_direction": {
+      "accuracy": 0.8,
+      "direction_accuracy": 0.8,
+      "balanced_accuracy": 0.666667,
+      "macro_f1": 0.533333,
+      "non_hold_recall": 1.0,
+      "hold_collapse_index": 0.0,
+      "brier_score": 0.252273,
+      "brier_score_per_class": {
+        "hike_25bp": 0.044786,
+        "hold": 0.126749,
+        "cut_25bp": 0.080738
+      },
+      "log_loss": 0.469974,
+      "confusion_matrix": {
+        "hike_25bp": {
+          "hike_25bp": 7,
+          "hold": 0,
+          "cut_25bp": 0
+        },
+        "hold": {
+          "hike_25bp": 1,
+          "hold": 0,
+          "cut_25bp": 1
+        },
+        "cut_25bp": {
+          "hike_25bp": 0,
+          "hold": 0,
+          "cut_25bp": 1
+        }
+      },
+      "class_counts": {
+        "cut_25bp": 1,
+        "hold": 2,
+        "hike_25bp": 7
+      },
+      "predicted_class_counts": {
+        "cut_25bp": 2,
+        "hike_25bp": 8
+      },
+      "majority_class_baseline_accuracy": 0.7
+    },
+    "rule_self_play_agent": {
+      "accuracy": 0.7,
+      "direction_accuracy": 0.7,
+      "balanced_accuracy": 0.571429,
+      "macro_f1": 0.468254,
+      "non_hold_recall": 0.625,
+      "hold_collapse_index": 0.244756,
+      "brier_score": 0.479206,
+      "brier_score_per_class": {
+        "hike_25bp": 0.191545,
+        "hold": 0.211789,
+        "cut_25bp": 0.075871
+      },
+      "log_loss": 0.761562,
+      "confusion_matrix": {
+        "hike_25bp": {
+          "hike_25bp": 5,
+          "hold": 2,
+          "cut_25bp": 0
+        },
+        "hold": {
+          "hike_25bp": 0,
+          "hold": 2,
+          "cut_25bp": 0
+        },
+        "cut_25bp": {
+          "hike_25bp": 0,
+          "hold": 1,
+          "cut_25bp": 0
+        }
+      },
+      "class_counts": {
+        "cut_25bp": 1,
+        "hold": 2,
+        "hike_25bp": 7
+      },
+      "predicted_class_counts": {
+        "hold": 5,
+        "hike_25bp": 5
+      },
+      "majority_class_baseline_accuracy": 0.7
+    }
+  }
+}

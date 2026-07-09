@@ -1,0 +1,15 @@
+{
+  "artifact_type": "local_adapter_result_card",
+  "note": "Weights and generated training data are not committed; this card preserves the headline local GRPO validation result.",
+  "adapter": "artifacts/first_version/adapters/grpo_from_sft_v2_lr1e4_steps12",
+  "test_file": "compact_equilibrium_sft.test.jsonl",
+  "test_rows_scored": 128,
+  "valid_json_rate": 1.0,
+  "weighted_reward": 0.483267,
+  "fed_probability_calibrated": 0.459647,
+  "not_always_hold": 0.776133,
+  "predicted_class_counts": {
+    "hike_25bp": 76,
+    "hold": 52
+  }
+}

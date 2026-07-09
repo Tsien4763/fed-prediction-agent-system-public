@@ -1,0 +1,1021 @@
+{
+  "artifact_type": "public_forecasting_comparison",
+  "generated_at": "2026-07-09T05:13:02.369019+00:00",
+  "label_fixture": "examples/public_eval/fomc_quarter_labels_2000_2026.csv",
+  "macro_fixture": "examples/public_eval/fred_macro_quarterly_2000_2026.csv",
+  "agent_trace_path": "artifacts/first_version/traces/rolling_self_play_traces.jsonl",
+  "train_window": "2000Q1-2019Q4",
+  "validation_window": "2020Q1-2023Q4",
+  "validation_quarters": 10,
+  "validation_class_counts": {
+    "cut_25bp": 1,
+    "hold": 2,
+    "hike_25bp": 7
+  },
+  "small_sample_note": "The validation fixture has 10 labeled quarters. Treat accuracy deltas as diagnostics, not production performance claims.",
+  "models": {
+    "train_prior_majority": {
+      "description": "Train-window class-frequency probability vector applied to every validation quarter.",
+      "metrics": {
+        "accuracy": 0.7,
+        "direction_accuracy": 0.7,
+        "balanced_accuracy": 0.333333,
+        "macro_f1": 0.27451,
+        "non_hold_recall": 0.875,
+        "hold_collapse_index": 0.0,
+        "brier_score": 0.582118,
+        "brier_score_per_class": {
+          "hike_25bp": 0.290278,
+          "hold": 0.172656,
+          "cut_25bp": 0.119184
+        },
+        "log_loss": 0.976083,
+        "confusion_matrix": {
+          "hike_25bp": {
+            "hike_25bp": 7,
+            "hold": 0,
+            "cut_25bp": 0
+          },
+          "hold": {
+            "hike_25bp": 2,
+            "hold": 0,
+            "cut_25bp": 0
+          },
+          "cut_25bp": {
+            "hike_25bp": 1,
+            "hold": 0,
+            "cut_25bp": 0
+          }
+        },
+        "class_counts": {
+          "cut_25bp": 1,
+          "hold": 2,
+          "hike_25bp": 7
+        },
+        "predicted_class_counts": {
+          "hike_25bp": 10
+        },
+        "majority_class_baseline_accuracy": 0.7
+      }
+    },
+    "previous_quarter_persistence": {
+      "description": "Assigns 0.80 probability to the previous observed quarter's class.",
+      "metrics": {
+        "accuracy": 0.7,
+        "direction_accuracy": 0.7,
+        "balanced_accuracy": 0.619048,
+        "macro_f1": 0.507937,
+        "non_hold_recall": 0.875,
+        "hold_collapse_index": 0.017,
+        "brier_score": 0.48,
+        "brier_score_per_class": {
+          "hike_25bp": 0.171,
+          "hold": 0.233,
+          "cut_25bp": 0.076
+        },
+        "log_loss": 0.846976,
+        "confusion_matrix": {
+          "hike_25bp": {
+            "hike_25bp": 6,
+            "hold": 1,
+            "cut_25bp": 0
+          },
+          "hold": {
+            "hike_25bp": 1,
+            "hold": 0,
+            "cut_25bp": 1
+          },
+          "cut_25bp": {
+            "hike_25bp": 0,
+            "hold": 0,
+            "cut_25bp": 1
+          }
+        },
+        "class_counts": {
+          "cut_25bp": 1,
+          "hold": 2,
+          "hike_25bp": 7
+        },
+        "predicted_class_counts": {
+          "cut_25bp": 2,
+          "hold": 1,
+          "hike_25bp": 7
+        },
+        "majority_class_baseline_accuracy": 0.7
+      }
+    },
+    "naive_macro_logistic": {
+      "description": "Multinomial logistic baseline on lagged public FRED quarterly macro features (FEDFUNDS, CPI inflation, unemployment, GS10, changes, real policy rate, yield gap).",
+      "metadata": {
+        "status": "completed",
+        "feature_names": [
+          "fedfunds",
+          "unemployment",
+          "inflation_cpi_yoy",
+          "gs10",
+          "fedfunds_qoq",
+          "unemployment_qoq",
+          "inflation_yoy_qoq",
+          "gs10_qoq",
+          "real_policy_rate",
+          "yield_gap"
+        ],
+        "train_rows": 47,
+        "validation_rows": 10,
+        "model": "sklearn LogisticRegression(class_weight='balanced')"
+      },
+      "metrics": {
+        "accuracy": 0.8,
+        "direction_accuracy": 0.8,
+        "balanced_accuracy": 0.666667,
+        "macro_f1": 0.533333,
+        "non_hold_recall": 1.0,
+        "hold_collapse_index": 0.0,
+        "brier_score": 0.329211,
+        "brier_score_per_class": {
+          "hike_25bp": 0.057598,
+          "hold": 0.162057,
+          "cut_25bp": 0.109556
+        },
+        "log_loss": 0.690573,
+        "confusion_matrix": {
+          "hike_25bp": {
+            "hike_25bp": 7,
+            "hold": 0,
+            "cut_25bp": 0
+          },
+          "hold": {
+            "hike_25bp": 1,
+            "hold": 0,
+            "cut_25bp": 1
+          },
+          "cut_25bp": {
+            "hike_25bp": 0,
+            "hold": 0,
+            "cut_25bp": 1
+          }
+        },
+        "class_counts": {
+          "cut_25bp": 1,
+          "hold": 2,
+          "hike_25bp": 7
+        },
+        "predicted_class_counts": {
+          "cut_25bp": 2,
+          "hike_25bp": 8
+        },
+        "majority_class_baseline_accuracy": 0.7
+      }
+    },
+    "naive_macro_ordered_probit": {
+      "description": "Ordered probit baseline on lagged public FRED quarterly macro features, treating cut < hold < hike as an ordered policy direction.",
+      "metadata": {
+        "status": "completed",
+        "feature_names": [
+          "fedfunds",
+          "unemployment",
+          "inflation_cpi_yoy",
+          "fedfunds_qoq",
+          "inflation_yoy_qoq",
+          "real_policy_rate",
+          "yield_gap"
+        ],
+        "train_rows": 47,
+        "validation_rows": 10,
+        "model": "statsmodels OrderedModel(distr='probit')",
+        "converged": true,
+        "fit_warnings": [
+          {
+            "category": "HessianInversionWarning",
+            "message": "Inverting hessian failed, no bse or cov_params available"
+          }
+        ]
+      },
+      "metrics": {
+        "accuracy": 0.9,
+        "direction_accuracy": 0.9,
+        "balanced_accuracy": 0.666667,
+        "macro_f1": 0.6,
+        "non_hold_recall": 0.875,
+        "hold_collapse_index": 0.055886,
+        "brier_score": 0.191285,
+        "brier_score_per_class": {
+          "hike_25bp": 0.039005,
+          "hold": 0.087954,
+          "cut_25bp": 0.064327
+        },
+        "log_loss": 0.325221,
+        "confusion_matrix": {
+          "hike_25bp": {
+            "hike_25bp": 7,
+            "hold": 0,
+            "cut_25bp": 0
+          },
+          "hold": {
+            "hike_25bp": 0,
+            "hold": 2,
+            "cut_25bp": 0
+          },
+          "cut_25bp": {
+            "hike_25bp": 0,
+            "hold": 1,
+            "cut_25bp": 0
+          }
+        },
+        "class_counts": {
+          "cut_25bp": 1,
+          "hold": 2,
+          "hike_25bp": 7
+        },
+        "predicted_class_counts": {
+          "hold": 3,
+          "hike_25bp": 7
+        },
+        "majority_class_baseline_accuracy": 0.7
+      }
+    },
+    "rolling_var_rate_direction": {
+      "description": "Rolling VAR on public FRED macro variables through the prior quarter; one-step fed funds forecast delta is mapped to hike/hold/cut probabilities.",
+      "metadata": {
+        "status": "completed",
+        "variables": [
+          "fedfunds",
+          "inflation_cpi_yoy",
+          "unemployment",
+          "gs10"
+        ],
+        "fallback_count": 0,
+        "fallback_examples": []
+      },
+      "metrics": {
+        "accuracy": 0.8,
+        "direction_accuracy": 0.8,
+        "balanced_accuracy": 0.666667,
+        "macro_f1": 0.533333,
+        "non_hold_recall": 1.0,
+        "hold_collapse_index": 0.0,
+        "brier_score": 0.252273,
+        "brier_score_per_class": {
+          "hike_25bp": 0.044786,
+          "hold": 0.126749,
+          "cut_25bp": 0.080738
+        },
+        "log_loss": 0.469974,
+        "confusion_matrix": {
+          "hike_25bp": {
+            "hike_25bp": 7,
+            "hold": 0,
+            "cut_25bp": 0
+          },
+          "hold": {
+            "hike_25bp": 1,
+            "hold": 0,
+            "cut_25bp": 1
+          },
+          "cut_25bp": {
+            "hike_25bp": 0,
+            "hold": 0,
+            "cut_25bp": 1
+          }
+        },
+        "class_counts": {
+          "cut_25bp": 1,
+          "hold": 2,
+          "hike_25bp": 7
+        },
+        "predicted_class_counts": {
+          "cut_25bp": 2,
+          "hike_25bp": 8
+        },
+        "majority_class_baseline_accuracy": 0.7
+      }
+    },
+    "rule_self_play_agent": {
+      "description": "Rule-fallback multi-agent self-play trace on the validation window. Public rerun uses bounded rounds and no private DeepSeek key or LoRA weights.",
+      "metadata": {
+        "status": "completed",
+        "trace_path": "artifacts/first_version/traces/rolling_self_play_traces.jsonl",
+        "trace_rows": 106,
+        "evaluated_rows": 10,
+        "missing_quarters": [],
+        "mode": "rule-fallback bounded-round public rerun"
+      },
+      "metrics": {
+        "accuracy": 0.7,
+        "direction_accuracy": 0.7,
+        "balanced_accuracy": 0.571429,
+        "macro_f1": 0.468254,
+        "non_hold_recall": 0.625,
+        "hold_collapse_index": 0.244423,
+        "brier_score": 0.478229,
+        "brier_score_per_class": {
+          "hike_25bp": 0.191593,
+          "hold": 0.211322,
+          "cut_25bp": 0.075314
+        },
+        "log_loss": 0.759931,
+        "confusion_matrix": {
+          "hike_25bp": {
+            "hike_25bp": 5,
+            "hold": 2,
+            "cut_25bp": 0
+          },
+          "hold": {
+            "hike_25bp": 0,
+            "hold": 2,
+            "cut_25bp": 0
+          },
+          "cut_25bp": {
+            "hike_25bp": 0,
+            "hold": 1,
+            "cut_25bp": 0
+          }
+        },
+        "class_counts": {
+          "cut_25bp": 1,
+          "hold": 2,
+          "hike_25bp": 7
+        },
+        "predicted_class_counts": {
+          "hold": 5,
+          "hike_25bp": 5
+        },
+        "majority_class_baseline_accuracy": 0.7
+      }
+    }
+  },
+  "per_quarter": {
+    "train_prior_majority": [
+      {
+        "quarter": "2020Q1",
+        "probabilities": {
+          "hike_25bp": 0.4166666666666667,
+          "hold": 0.3125,
+          "cut_25bp": 0.2708333333333333
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "cut_25bp",
+        "correct": false
+      },
+      {
+        "quarter": "2020Q2",
+        "probabilities": {
+          "hike_25bp": 0.4166666666666667,
+          "hold": 0.3125,
+          "cut_25bp": 0.2708333333333333
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hold",
+        "correct": false
+      },
+      {
+        "quarter": "2022Q1",
+        "probabilities": {
+          "hike_25bp": 0.4166666666666667,
+          "hold": 0.3125,
+          "cut_25bp": 0.2708333333333333
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q2",
+        "probabilities": {
+          "hike_25bp": 0.4166666666666667,
+          "hold": 0.3125,
+          "cut_25bp": 0.2708333333333333
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q3",
+        "probabilities": {
+          "hike_25bp": 0.4166666666666667,
+          "hold": 0.3125,
+          "cut_25bp": 0.2708333333333333
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q4",
+        "probabilities": {
+          "hike_25bp": 0.4166666666666667,
+          "hold": 0.3125,
+          "cut_25bp": 0.2708333333333333
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q1",
+        "probabilities": {
+          "hike_25bp": 0.4166666666666667,
+          "hold": 0.3125,
+          "cut_25bp": 0.2708333333333333
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q2",
+        "probabilities": {
+          "hike_25bp": 0.4166666666666667,
+          "hold": 0.3125,
+          "cut_25bp": 0.2708333333333333
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q3",
+        "probabilities": {
+          "hike_25bp": 0.4166666666666667,
+          "hold": 0.3125,
+          "cut_25bp": 0.2708333333333333
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q4",
+        "probabilities": {
+          "hike_25bp": 0.4166666666666667,
+          "hold": 0.3125,
+          "cut_25bp": 0.2708333333333333
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hold",
+        "correct": false
+      }
+    ],
+    "previous_quarter_persistence": [
+      {
+        "quarter": "2020Q1",
+        "probabilities": {
+          "hike_25bp": 0.1,
+          "hold": 0.1,
+          "cut_25bp": 0.8
+        },
+        "predicted_class": "cut_25bp",
+        "actual_class": "cut_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2020Q2",
+        "probabilities": {
+          "hike_25bp": 0.1,
+          "hold": 0.1,
+          "cut_25bp": 0.8
+        },
+        "predicted_class": "cut_25bp",
+        "actual_class": "hold",
+        "correct": false
+      },
+      {
+        "quarter": "2022Q1",
+        "probabilities": {
+          "hike_25bp": 0.1,
+          "hold": 0.8,
+          "cut_25bp": 0.1
+        },
+        "predicted_class": "hold",
+        "actual_class": "hike_25bp",
+        "correct": false
+      },
+      {
+        "quarter": "2022Q2",
+        "probabilities": {
+          "hike_25bp": 0.8,
+          "hold": 0.1,
+          "cut_25bp": 0.1
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q3",
+        "probabilities": {
+          "hike_25bp": 0.8,
+          "hold": 0.1,
+          "cut_25bp": 0.1
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q4",
+        "probabilities": {
+          "hike_25bp": 0.8,
+          "hold": 0.1,
+          "cut_25bp": 0.1
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q1",
+        "probabilities": {
+          "hike_25bp": 0.8,
+          "hold": 0.1,
+          "cut_25bp": 0.1
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q2",
+        "probabilities": {
+          "hike_25bp": 0.8,
+          "hold": 0.1,
+          "cut_25bp": 0.1
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q3",
+        "probabilities": {
+          "hike_25bp": 0.8,
+          "hold": 0.1,
+          "cut_25bp": 0.1
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q4",
+        "probabilities": {
+          "hike_25bp": 0.8,
+          "hold": 0.1,
+          "cut_25bp": 0.1
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hold",
+        "correct": false
+      }
+    ],
+    "naive_macro_logistic": [
+      {
+        "quarter": "2020Q1",
+        "probabilities": {
+          "hike_25bp": 0.136016,
+          "hold": 0.014931,
+          "cut_25bp": 0.849053
+        },
+        "predicted_class": "cut_25bp",
+        "actual_class": "cut_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2020Q2",
+        "probabilities": {
+          "hike_25bp": 0.048207,
+          "hold": 0.012238,
+          "cut_25bp": 0.939555
+        },
+        "predicted_class": "cut_25bp",
+        "actual_class": "hold",
+        "correct": false
+      },
+      {
+        "quarter": "2022Q1",
+        "probabilities": {
+          "hike_25bp": 0.997349,
+          "hold": 2.7e-05,
+          "cut_25bp": 0.002624
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q2",
+        "probabilities": {
+          "hike_25bp": 0.996353,
+          "hold": 3.2e-05,
+          "cut_25bp": 0.003615
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q3",
+        "probabilities": {
+          "hike_25bp": 0.99996,
+          "hold": 7e-06,
+          "cut_25bp": 3.3e-05
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q4",
+        "probabilities": {
+          "hike_25bp": 0.999885,
+          "hold": 9e-06,
+          "cut_25bp": 0.000106
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q1",
+        "probabilities": {
+          "hike_25bp": 0.999706,
+          "hold": 0.000221,
+          "cut_25bp": 7.3e-05
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q2",
+        "probabilities": {
+          "hike_25bp": 0.914544,
+          "hold": 0.010566,
+          "cut_25bp": 0.07489
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q3",
+        "probabilities": {
+          "hike_25bp": 0.510409,
+          "hold": 0.131456,
+          "cut_25bp": 0.358135
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q4",
+        "probabilities": {
+          "hike_25bp": 0.5551,
+          "hold": 0.207992,
+          "cut_25bp": 0.236908
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hold",
+        "correct": false
+      }
+    ],
+    "naive_macro_ordered_probit": [
+      {
+        "quarter": "2020Q1",
+        "probabilities": {
+          "hike_25bp": 0.225766,
+          "hold": 0.522554,
+          "cut_25bp": 0.25168
+        },
+        "predicted_class": "hold",
+        "actual_class": "cut_25bp",
+        "correct": false
+      },
+      {
+        "quarter": "2020Q2",
+        "probabilities": {
+          "hike_25bp": 0.424346,
+          "hold": 0.466547,
+          "cut_25bp": 0.109108
+        },
+        "predicted_class": "hold",
+        "actual_class": "hold",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q1",
+        "probabilities": {
+          "hike_25bp": 0.97366,
+          "hold": 0.025949,
+          "cut_25bp": 0.00039
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q2",
+        "probabilities": {
+          "hike_25bp": 0.998925,
+          "hold": 0.001071,
+          "cut_25bp": 4e-06
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q3",
+        "probabilities": {
+          "hike_25bp": 1.0,
+          "hold": 0.0,
+          "cut_25bp": 0.0
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q4",
+        "probabilities": {
+          "hike_25bp": 1.0,
+          "hold": 0.0,
+          "cut_25bp": 0.0
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q1",
+        "probabilities": {
+          "hike_25bp": 0.999997,
+          "hold": 3e-06,
+          "cut_25bp": 0.0
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q2",
+        "probabilities": {
+          "hike_25bp": 0.977089,
+          "hold": 0.022596,
+          "cut_25bp": 0.000314
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q3",
+        "probabilities": {
+          "hike_25bp": 0.664958,
+          "hold": 0.302749,
+          "cut_25bp": 0.032293
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q4",
+        "probabilities": {
+          "hike_25bp": 0.213393,
+          "hold": 0.521399,
+          "cut_25bp": 0.265208
+        },
+        "predicted_class": "hold",
+        "actual_class": "hold",
+        "correct": true
+      }
+    ],
+    "rolling_var_rate_direction": [
+      {
+        "quarter": "2020Q1",
+        "probabilities": {
+          "hike_25bp": 0.042417,
+          "hold": 0.084834,
+          "cut_25bp": 0.872749
+        },
+        "predicted_class": "cut_25bp",
+        "actual_class": "cut_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2020Q2",
+        "probabilities": {
+          "hike_25bp": 0.041667,
+          "hold": 0.083333,
+          "cut_25bp": 0.875
+        },
+        "predicted_class": "cut_25bp",
+        "actual_class": "hold",
+        "correct": false
+      },
+      {
+        "quarter": "2022Q1",
+        "probabilities": {
+          "hike_25bp": 0.815587,
+          "hold": 0.122942,
+          "cut_25bp": 0.061471
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q2",
+        "probabilities": {
+          "hike_25bp": 0.795058,
+          "hold": 0.136628,
+          "cut_25bp": 0.068314
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q3",
+        "probabilities": {
+          "hike_25bp": 0.875,
+          "hold": 0.083333,
+          "cut_25bp": 0.041667
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q4",
+        "probabilities": {
+          "hike_25bp": 0.875,
+          "hold": 0.083333,
+          "cut_25bp": 0.041667
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q1",
+        "probabilities": {
+          "hike_25bp": 0.875,
+          "hold": 0.083333,
+          "cut_25bp": 0.041667
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q2",
+        "probabilities": {
+          "hike_25bp": 0.875,
+          "hold": 0.083333,
+          "cut_25bp": 0.041667
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q3",
+        "probabilities": {
+          "hike_25bp": 0.786428,
+          "hold": 0.142381,
+          "cut_25bp": 0.071191
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q4",
+        "probabilities": {
+          "hike_25bp": 0.510104,
+          "hold": 0.418467,
+          "cut_25bp": 0.071429
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hold",
+        "correct": false
+      }
+    ],
+    "rule_self_play_agent": [
+      {
+        "quarter": "2020Q1",
+        "probabilities": {
+          "hike_25bp": 0.1819,
+          "hold": 0.6127,
+          "cut_25bp": 0.2054
+        },
+        "predicted_class": "hold",
+        "actual_class": "cut_25bp",
+        "correct": false
+      },
+      {
+        "quarter": "2020Q2",
+        "probabilities": {
+          "hike_25bp": 0.150985,
+          "hold": 0.614539,
+          "cut_25bp": 0.234477
+        },
+        "predicted_class": "hold",
+        "actual_class": "hold",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q1",
+        "probabilities": {
+          "hike_25bp": 0.6153,
+          "hold": 0.3847,
+          "cut_25bp": 0.0
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q2",
+        "probabilities": {
+          "hike_25bp": 0.625,
+          "hold": 0.375,
+          "cut_25bp": 0.0
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q3",
+        "probabilities": {
+          "hike_25bp": 0.6223,
+          "hold": 0.3777,
+          "cut_25bp": 0.0
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2022Q4",
+        "probabilities": {
+          "hike_25bp": 0.6085,
+          "hold": 0.3915,
+          "cut_25bp": 0.0
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q1",
+        "probabilities": {
+          "hike_25bp": 0.5147,
+          "hold": 0.457,
+          "cut_25bp": 0.0283
+        },
+        "predicted_class": "hike_25bp",
+        "actual_class": "hike_25bp",
+        "correct": true
+      },
+      {
+        "quarter": "2023Q2",
+        "probabilities": {
+          "hike_25bp": 0.291229,
+          "hold": 0.552855,
+          "cut_25bp": 0.155916
+        },
+        "predicted_class": "hold",
+        "actual_class": "hike_25bp",
+        "correct": false
+      },
+      {
+        "quarter": "2023Q3",
+        "probabilities": {
+          "hike_25bp": 0.3189,
+          "hold": 0.5525,
+          "cut_25bp": 0.1286
+        },
+        "predicted_class": "hold",
+        "actual_class": "hike_25bp",
+        "correct": false
+      },
+      {
+        "quarter": "2023Q4",
+        "probabilities": {
+          "hike_25bp": 0.271527,
+          "hold": 0.569957,
+          "cut_25bp": 0.158516
+        },
+        "predicted_class": "hold",
+        "actual_class": "hold",
+        "correct": true
+      }
+    ]
+  }
+}

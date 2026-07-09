@@ -1,0 +1,69 @@
+quarter,actual_decision,actual_class,meetings,meeting_dates,meeting_descriptions
+2000Q1,1,hike_25bp,2,2000-02-02;2000-03-21,hike 25bp;hike 25bp
+2000Q2,1,hike_25bp,2,2000-05-16;2000-06-28,hike 50bp;hold
+2000Q3,0,hold,1,2000-08-22,hold
+2000Q4,0,hold,3,2000-10-03;2000-11-15;2000-12-19,hold;hold;hold
+2001Q1,-1,cut_25bp,3,2001-01-03;2001-01-31;2001-03-20,cut 50bp (inter-meeting);cut 50bp;cut 50bp
+2001Q2,-1,cut_25bp,3,2001-04-18;2001-05-15;2001-06-27,cut 50bp (inter-meeting);cut 50bp;cut 25bp
+2001Q3,-1,cut_25bp,2,2001-08-21;2001-09-17,"cut 25bp;cut 50bp (inter-meeting, post-9/11)"
+2001Q4,-1,cut_25bp,3,2001-10-02;2001-11-06;2001-12-11,cut 50bp;cut 50bp;cut 25bp
+2002Q1,0,hold,2,2002-01-30;2002-03-19,hold;hold
+2002Q2,0,hold,2,2002-05-07;2002-06-26,hold;hold
+2002Q3,0,hold,2,2002-08-13;2002-09-24,hold;hold
+2002Q4,-1,cut_25bp,2,2002-11-06;2002-12-10,cut 50bp;hold
+2003Q1,0,hold,1,2003-01-29,hold
+2003Q2,-1,cut_25bp,1,2003-06-25,cut 25bp
+2003Q3,0,hold,2,2003-08-12;2003-09-16,hold;hold
+2003Q4,0,hold,2,2003-10-28;2003-12-09,hold;hold
+2004Q1,0,hold,2,2004-01-28;2004-03-16,hold;hold
+2004Q2,1,hike_25bp,2,2004-05-04;2004-06-30,hold;hike 25bp
+2004Q3,1,hike_25bp,2,2004-08-10;2004-09-21,hike 25bp;hike 25bp
+2004Q4,1,hike_25bp,2,2004-11-10;2004-12-14,hike 25bp;hike 25bp
+2005Q1,1,hike_25bp,2,2005-02-02;2005-03-22,hike 25bp;hike 25bp
+2005Q2,1,hike_25bp,2,2005-05-03;2005-06-30,hike 25bp;hike 25bp
+2005Q3,1,hike_25bp,2,2005-08-09;2005-09-20,hike 25bp;hike 25bp
+2005Q4,1,hike_25bp,2,2005-11-01;2005-12-13,hike 25bp;hike 25bp
+2006Q1,1,hike_25bp,2,2006-01-31;2006-03-28,hike 25bp;hike 25bp
+2006Q2,1,hike_25bp,2,2006-05-10;2006-06-29,hike 25bp;hike 25bp
+2006Q3,0,hold,2,2006-08-08;2006-09-20,hold;hold
+2006Q4,0,hold,2,2006-10-25;2006-12-12,hold;hold
+2007Q1,0,hold,2,2007-01-31;2007-03-21,hold;hold
+2007Q2,0,hold,2,2007-05-09;2007-06-28,hold;hold
+2007Q3,-1,cut_25bp,2,2007-08-07;2007-09-18,hold;cut 50bp
+2007Q4,-1,cut_25bp,2,2007-10-31;2007-12-11,cut 25bp;cut 25bp
+2008Q1,-1,cut_25bp,3,2008-01-22;2008-01-30;2008-03-18,cut 75bp (inter-meeting);cut 50bp;cut 75bp
+2008Q2,-1,cut_25bp,2,2008-04-30;2008-06-25,cut 25bp;hold
+2008Q3,0,hold,2,2008-08-05;2008-09-16,hold;hold (Lehman weekend)
+2008Q4,-1,cut_25bp,3,2008-10-08;2008-10-29;2008-12-16,cut 50bp (coordinated);cut 50bp;cut to ZLB
+2009Q1,0,hold,1,2009-01-28,hold (ZIRP)
+2015Q4,1,hike_25bp,1,2015-12-16,hike 25bp (liftoff)
+2016Q4,1,hike_25bp,1,2016-12-14,hike 25bp
+2017Q1,1,hike_25bp,1,2017-03-15,hike 25bp
+2017Q2,1,hike_25bp,1,2017-06-14,hike 25bp
+2017Q4,1,hike_25bp,1,2017-12-13,hike 25bp
+2018Q1,1,hike_25bp,1,2018-03-21,hike 25bp
+2018Q2,1,hike_25bp,1,2018-06-13,hike 25bp
+2018Q3,1,hike_25bp,1,2018-09-26,hike 25bp
+2018Q4,1,hike_25bp,1,2018-12-19,hike 25bp
+2019Q3,-1,cut_25bp,2,2019-07-31;2019-09-18,cut 25bp;cut 25bp
+2019Q4,-1,cut_25bp,1,2019-10-30,cut 25bp
+2020Q1,-1,cut_25bp,2,2020-03-03;2020-03-15,cut 50bp (inter-meeting);cut 100bp to ZLB
+2020Q2,0,hold,1,2020-06-10,hold (ZIRP)
+2022Q1,1,hike_25bp,1,2022-03-16,hike 25bp (liftoff)
+2022Q2,1,hike_25bp,2,2022-05-04;2022-06-15,hike 50bp;hike 75bp
+2022Q3,1,hike_25bp,2,2022-07-27;2022-09-21,hike 75bp;hike 75bp
+2022Q4,1,hike_25bp,2,2022-11-02;2022-12-14,hike 75bp;hike 50bp
+2023Q1,1,hike_25bp,2,2023-02-01;2023-03-22,hike 25bp;hike 25bp
+2023Q2,1,hike_25bp,2,2023-05-03;2023-06-14,hike 25bp;hold (skip)
+2023Q3,1,hike_25bp,2,2023-07-26;2023-09-20,hike 25bp (terminal);hold
+2023Q4,0,hold,2,2023-11-01;2023-12-13,hold;hold
+2024Q1,0,hold,2,2024-01-31;2024-03-20,hold;hold
+2024Q2,0,hold,2,2024-05-01;2024-06-12,hold;hold
+2024Q3,-1,cut_25bp,2,2024-07-31;2024-09-18,hold;cut 25bp
+2024Q4,-1,cut_25bp,2,2024-11-07;2024-12-18,cut 25bp;cut 25bp
+2025Q1,-1,cut_25bp,2,2025-01-29;2025-03-19,cut 25bp;cut 25bp
+2025Q2,-1,cut_25bp,2,2025-05-07;2025-06-18,cut 25bp;cut 25bp
+2025Q3,-1,cut_25bp,2,2025-07-30;2025-09-17,hold (Waller+Bowman dissent);cut 25bp
+2025Q4,0,hold,2,2025-10-29;2025-12-10,hold;hold (cut signaled but not executed?)
+2026Q1,0,hold,2,2026-01-28;2026-03-18,hold (Waller+Miran dissent for cut);hold (Miran dissent for cut)
+2026Q2,0,hold,2,2026-04-29;2026-06-17,"hold (4 dissenters);hold (Warsh first meeting, hawkish SEP)"
