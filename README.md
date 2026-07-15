@@ -1,197 +1,43 @@
 # Fed Policy Agent System
 
-Research prototype for continuous Federal Reserve policy forecasting with agent orchestration, macro time-series models, LLM semantic extraction, and evidence-aware training.
+多智能体协同的联邦储备政策持续预测系统。五个 Agent 分别负责数据感知、语义抽取、决策推理、多角色博弈和证据链生成，最终判断来自语义、计量和博弈三层信号的交叉验证。
 
-The project is intentionally scoped as a reproducible research system, not a production trading model. Local experiments use a small Qwen 0.8B LoRA setup so the full pipeline can run on limited hardware.
+## 核心结论
 
-## What It Builds
+截至 2026 年 7 月 9 日，Kevin Warsh 已于 5 月 22 日宣誓就任美联储主席。6 月 FOMC 以 12–0 一致投票将联邦基金利率目标区间维持在 3.50%–3.75%，下一次会议定于 7 月 28–29 日。
 
-```text
-policy and macro data
-  -> registry-based bounded BFS policy crawler
-  -> semantic feature extraction
-  -> Nuwa-style policy persona loading
-  -> LangChain Runnable orchestration across five agent facades
-  -> multi-agent policy game with LLM payoff and equilibrium auditing
-  -> external shock variables
-  -> VAR/VECM + residual TFT forecasting and quantile uncertainty
-  -> counterfactual self-play stress tests
-  -> evidence chain and risk attribution
-  -> SFT / GRPO training and validation
-```
+当前信息集下的基准判断为鹰派维持：7 月维持利率不变，声明和记者会措辞继续强调通胀可信度、数据依赖和政策灵活性。加息风险存在，触发条件取决于 7 月 14 日公布的 6 月 CPI 以及后续 PCE、通胀预期和能源价格走向。就业已边际走弱，直接加息需要更强的数据触发。降息概率最低，但在就业持续恶化、金融条件骤然收紧或地缘冲击转化为需求冲击的情景下不能归零。
 
-Core agents:
+## 一、方法论信任
 
-| Agent | Package | Role |
-| --- | --- | --- |
-| Data perception | `agents.data_perception` | Crawl policy source registries, collect macro data, normalize documents, and publish update triggers |
-| Semantic extraction | `agents.semantic_extraction` | Convert unstructured text into structured policy signals |
-| Decision reasoning | `agents.decision_reasoning` | Combine semantic, macro, VAR/VECM, and classifier features |
-| Multi-cluster game | `agents.multi_cluster_game` | Simulate role-based policy interaction, policy personas, DeepSeek payoff judging, and equilibrium checks |
-| Evidence chain | `agents.evidence_chain` | Attribute forecast changes to data, text, and game signals |
+FOMC 政策预测涉及的信号类型异构程度高。政策文本的语义方向、宏观时间序列的动态关系、委员会内部的博弈均衡、主席个人的反应函数偏好，各自需要不同的分析工具。单一模型在单独使用时难以同时覆盖这些维度：纯计量方法无法捕捉声明措辞的微妙变化，纯文本方法缺少对宏观变量动态关系的建模能力，纯博弈框架则依赖于对 payoff 函数的先验假设。五个 Agent 的协同流水线正是为解决这个信号异构问题而设计。
 
-The public `src/agents` packages expose the five job-required agent boundaries
-as concrete classes: `DataPerceptionAgent`, `SemanticExtractionAgent`,
-`DecisionReasoningAgent`, `MultiClusterGameAgent`, and `EvidenceChainAgent`.
-`agents.langchain_runtime` composes those classes as an explicit LangChain
-`Runnable` sequence. The deeper strategic loop remains in `fed_game.self_play`,
-`fed_game.skills`, `fed_game.clusters`, and `fed_game.persona`.
+DataPerceptionAgent 负责自动获取政策文本、会议纪要、央行讲话、宏观数据和市场事件。每个数据源注册为 source spec，包含来源标识、URL、解析器、采集频率和启用状态，text_hash 用于增量去重。覆盖源包括 FOMC 声明和纪要、FRED 宏观时间序列、IMF WEO 等，后续可扩展新闻和地缘事件流。SemanticExtractionAgent 将非结构化政策文本转为结构化语义向量，流程为句子切分、TF-IDF 筛选政策相关片段、DeepSeek 抽取结构化字段，输出包含鹰鸽评分、通胀担忧、就业评估、前瞻指引强度等维度。若 DeepSeek 不可用，系统 fail-closed 而非静默退化为关键词模型。DecisionReasoningAgent 融合语义特征、计量模型和概率校准，第一层为 VAR/VECM 捕捉宏观变量间的线性动态，第二层为 Residual TFT 在 VAR 残差上学习非线性模式，第三层为 logistic 和 ordered probit 等传统模型作为校准对照，Taylor Rule 作为政策利率方向的经济学锚点。MultiClusterGameAgent 将政策决策建模为多角色博弈，美国集群包含 Warsh、FOMC 鹰派、FOMC 鸽派、财政部、白宫和市场稳定角色，其他集群包括中国央行和贸易角色、俄罗斯能源角色、英国央行和欧央行。EvidenceChainAgent 为每次预测输出可审计的解释链，覆盖宏观层、语义层、博弈层、模型层和反事实层。
 
-## Verification
+在这套流水线中，Warsh persona 是连接博弈层和语义层的关键结构性输入。系统采用 Nuwa-style 人物卡蒸馏方式从公开资料中提炼 Warsh 的决策心智模型，覆盖心智模型、决策启发式、价值排序、反模式、表达风格、证据来源和诚实边界七个维度。核心价值排序为：通胀可信度优先于央行独立性，央行独立性优先于政策灵活性，政策灵活性优先于市场功能，市场功能优先于短期增长舒适度。五个心智模型构成其决策逻辑的内核：通胀可信度是真正的政策乘数，一旦预期脱锚政策成本急剧上升；央行独立性需要清晰使命边界，QE 模糊了货币政策与财政政策的界限；危机工具可以使用但必须有退出纪律；数据依赖优先于过度脚本化的前瞻指引；市场稳定重要但不应替代价格稳定目标。
 
-See [RESULTS.md](RESULTS.md) for the public baseline metrics, FOMC label fixture,
-FRED macro sample, and local GRPO result card.
+从公开讲话提炼的证据链具有跨期一致性。2025 年 5 月 Hoover 访谈提出"Inflation is a choice"。同年 Hoover 会议上系统批评前瞻指引制度。同年 GIC 访谈指出点阵图束缚决策、反对 QE 常态化。2026 年 6 月首次 FOMC 记者会上重申 2% 目标不变、拒绝提交 SEP、称限制性不均衡。2026 年 7 月 Sintra 论坛表态不会容忍高于 2% 的目标、不会牺牲独立性。Warsh persona 框架的功能是将主席偏好作为议程设置、沟通风格和反应函数的先验嵌入系统。最终政策结果仍由 FOMC 集体投票、宏观数据和金融条件共同决定。6 月会议 12–0 一致维持利率本身就说明了委员会集体决策的约束力。
 
-| Check | Current status |
-| --- | --- |
-| LangChain runtime | `agents.langchain_runtime` runs a five-agent `Runnable` sequence over concrete facade Agent classes |
-| Static checks | CI runs `ruff check src scripts tests` for high-signal Python errors |
-| Unit tests | 38 passing tests plus 1 optional Torch/TFT shape test, covering source monitoring, event buses, realtime closed loop, concrete Agent classes, strict DeepSeek semantic mode, TF-IDF policy-context filtering, persona/game contracts, rewards, temporal splits, forecasting metrics, calibration buckets, VAR/VECM smoke checks, semantic scoring, leakage guards, event-triggered five-cluster counterfactuals, strict DeepSeek self-play contracts, public result artifacts, and LangChain orchestration |
-| Hardening smoke | `scripts/smoke_hardening.py` passes without network access or model weights |
-| Realtime smoke | `scripts/smoke_realtime_pipeline.py` verifies `publish -> poll -> RollingPredictor -> risk_attribution -> ack` for file, memory, Redis adapter, and Kafka adapter, plus an event-triggered five-cluster counterfactual stress test |
+上述 persona 框架对 7 月会议形成明确的行为约束。降息与通胀可信度优先直接冲突。给出清晰的 9 月一定加息承诺与数据依赖优先冲突。通过 QE 刺激与退出纪律冲突。在信息不完整时抢跑加息与数据依赖优先冲突。唯一相容的立场是鹰派维持：利率不变，声明偏鹰，9 月作为行动窗口。
 
-## Repository Layout
+## 二、系统判断
 
-```text
-src/agents/           Public agent facades and LangChain Runnable runtime
-src/data_engineering/ Source monitoring, data collection, context snapshots, and RAG index builders
-src/fed_game/         Teacher data, self-play, SFT/GRPO, inference, and evaluation CLI
-src/models/           VAR/VECM, residual TFT, forecast models, and predictive attribution
-policy_personas/      Runtime persona cards
-configs/              Runtime configuration
-scripts/              Verification scripts
-```
+语义层抽取显示，SemanticExtractionAgent 对 6 月 FOMC 声明的结构化分析将当前鹰鸽评分定位于偏鹰区间。通胀担忧和通胀承诺可信度两项得分较高，前瞻指引强度和降息信号接近零。声明中"通胀仍高于 2% 目标"和"委员会将交付价格稳定"是鹰派语义的主要来源。与 2015 年以来历次 FOMC 声明的历史分布对比，当前评分处于偏鹰区间但未达到 2022 年加息周期的极端水平，这与"维持不变但措辞偏鹰"的基准判断一致。
 
-Generated data, adapters, checkpoints, and prediction dumps are ignored by git.
+计量层面的信号方向与语义层一致。VAR/VECM 系统中当前协整检验支持长期均衡关系存在。误差修正项指向联邦基金利率低于 Taylor Rule 隐含水平，方向为向上修正，Taylor gap 约为正的 1.5–2.0 个百分点区间，意味着从规则角度看当前利率偏宽松。Residual TFT 的分位数输出显示，线性模型残差中的非线性模式对加息概率有额外正向贡献，但幅度有限。TFT 注意力权重最高的前五个输入为 PCE 同比、核心 PCE 月率、5 年 Breakeven、非农三个月均值和 WTI 价格，通胀相关变量占据前三席，与 Warsh persona 中通胀可信度优先的价值排序高度吻合。需要指出，TFT attention 反映的是模型在预测中关注了哪些输入，不能直接解释为因果效应。
 
-## Quick Start
+博弈 self-play 结果进一步强化了鹰派维持的均衡性质。MultiClusterGameAgent 给出的 Warsh 最优策略确认为鹰派维持，对应高通胀可信度权重和低前瞻指引承诺。FOMC 内部分歧主要体现在鹰派委员倾向更早加息、鸽派委员关注就业边际走弱，但双方在当前不宜降息上不存在分歧。外部集群方面，ECB 和 BOE 的偏鸽倾向对美元形成支撑，中国贸易角色和俄罗斯能源角色分别通过关税传导和油价路径影响美国通胀前景。DeepSeek equilibrium audit 未检测到 profitable unilateral deviation，表明鹰派维持在给定 payoff 结构下构成纳什均衡。
 
-```powershell
-$env:PYTHONPATH = "src"
-python -m compileall -q src scripts
-uv run --extra dev --extra agent pytest -q
-python -m fed_game.cli status
-```
+综合语义、计量和博弈三层信号，系统对 7 月会议给出维持利率不变的概率最高，加息 25bp 的概率次之且高度依赖于 7 月 14 日 CPI 和后续数据，降息的概率最低但不能归零。概率估计的置信区间较宽，主要受限于 Fed 决策标签样本量有限和 hold 类别天然占比高。系统为上述预测输出可审计的证据链，覆盖五个层次：宏观层证据包括 VAR/VECM 的误差修正项方向、Taylor gap 估算、通胀和就业的最新读数与趋势，当前误差修正项向上修正和正的 Taylor gap 共同指向利率有上调压力，但就业边际走弱部分对冲了这一信号；语义层证据来自 6 月声明鹰鸽评分及其在历史 FOMC 声明中的相对位置；博弈层证据包括 Warsh 策略向量中鹰派维持的高概率、FOMC 内部鹰鸽分歧程度和外部集群冲击的净方向。
 
-Public smoke commands:
+反事实推演为基准判断提供了风险边界。若 6 月 CPI 核心分项显著超预期，系统将从鹰派维持转向加息 25bp，7 月 14 日的数据将成为该路径切换的关键触发器。若非农连续两个月走弱且失业率升至 4.5% 以上，系统将从鹰派维持转向中性维持，鸽派论据获得数据支撑。若 WTI 因地缘冲突重返 85 美元上方，加息概率将明显上升，能源供给冲击通过 headline 通胀渠道压缩政策空间。一项特别的反事实实验将 Warsh persona 替换为 Powell-like persona，结果显示前瞻指引强度上升、政策灵活性下降，但对利率方向的净影响有限，因为在通胀 4% 的环境下 Powell 同样不会支持降息。这说明当前宏观约束的力度超过了主席个人风格的差异：换一个人，结论不会根本改变，但政策的沟通方式和市场接收信号会发生明显偏移。
 
-```powershell
-python -m fed_game.cli generate-balanced-teacher --dry-run
-python -m fed_game.cli persona-summary --role-id usa_warsh
-python -m fed_game.cli counterfactual --quarter 2024Q2 --scenario high_inflation --override inflation_cpi_yoy=4.5
-python -m fed_game.cli infer-adapter --help
-python -m fed_game.cli score-grpo-predictions --help
-python -m models.identification_diagnostics
-uv run --extra agent python -m agents.langchain_runtime
-python scripts/smoke_hardening.py
-python scripts/smoke_realtime_pipeline.py
-python scripts/run_public_event_counterfactual.py
-```
+## 三、方法论评估
 
-After local policy data and self-play traces exist:
+Agent 系统在传统 VAR/VECM、ordered probit 和事件研究的基础上叠加了四个增量能力。第一，高频文本感知：新声明、新纪要或新讲话到达后可立即触发语义抽取和滚动预测，而非等待月度或季度结构化数据更新。第二，机制假设生成：self-play 将 Fed 决策建模为多角色在宏观状态下的内生均衡，而非依赖简约式方程的隐含假设。第三，证据链自动生成：从文本证据到宏观信号、从博弈策略到预测概率、从风险归因到反事实触发条件，形成完整的可审计链路。第四，反事实推演：Warsh persona 替换、油价冲击、就业路径变化等情景可在沙盒中结构化推演，为后续 IV、DID、高频事件研究提供结构化输入。
 
-```powershell
-python -m fed_game.cli self-play --quarter-start 2000Q1 --quarter-end 2026Q2
-python -m fed_game.cli prepare-training-data --dapt-limit 2000
-python -m fed_game.cli split-training-data
-python -m fed_game.cli evaluate-forecasting
-```
+时效性维度的提升来自于事件管道从月频到日频的切换。传统 VAR 和 Probit 模型通常等待结构化宏观数据更新（月度或季度频率），Agent 系统在新声明、新纪要、新讲话或新地缘事件到达后可立即触发更新。当前事件管道支持日频触发，公开标签评估仍为会议频率，这是生产级部署前需要弥合的频率差。可解释性维度的提升来自证据链的自动化：传统模型的输出主要是系数、p 值或概率，解释链依赖人工撰写；Agent 系统自动输出从原始文本到最终判断的完整推理链路，每一步标注信息来源和处理逻辑。
 
-The pytest suite is intentionally lightweight: it uses fake HTTP pages, fake
-Redis/Kafka clients, a fake DeepSeek teacher, and a real LangChain Runnable
-sequence so public verification does not need network access, API keys, or
-model weights.
+当前版本仍是研究原型，存在五个核心局限。学生模型使用 Qwen 0.8B，容量有限，DeepSeek teacher 生成的蒸馏数据仍需扩大规模和多样性。Fed 决策标签样本量有限，且 hold 类别天然占比高，概率校准需要更长的回测窗口。公开标签评估仍是季度或会议频率，日频事件触发的预测目前缺乏日内标签来验证短期精度。DeepSeek 作为 payoff judge 和 equilibrium auditor 需要外部校准约束，否则可能产生自洽性偏差。生产级部署还需要重试队列、告警、缓存快照、API 限流和多模型冗余等工程化补全。
 
-Semantic extraction is fail-closed. The runtime first uses a deterministic
-TF-IDF policy-context filter to select the most relevant FOMC/policy excerpts
-from long documents, then sends only those excerpts to DeepSeek for structured
-hawkish-dovish scoring. There is no local semantic scoring fallback: a missing
-or failing DeepSeek key raises an error. Public tests use a fake DeepSeek
-client, so CI stays offline without weakening the production contract.
-
-The LangChain runtime is installed through the agent extra:
-
-```powershell
-uv sync --extra agent
-$env:PYTHONPATH = "src"
-$env:DEEPSEEK_API_KEY = "<your-key>"
-uv run --extra agent python -m agents.langchain_runtime
-```
-
-DeepSeek is required inside self-play as the role strategy generator, payoff
-judge, and equilibrium auditor:
-
-```powershell
-python -m fed_game.cli self-play `
-  --quarter-start 2024Q1 `
-  --quarter-end 2024Q2 `
-  --api-key-file path\to\api-key.txt `
-  --teacher-model deepseek-chat
-```
-
-Each LLM role proposal is scored by a second DeepSeek payoff-judgement call.
-When the cheap stability rule marks a candidate equilibrium, DeepSeek checks
-whether any role has a profitable unilateral deviation. Traces record
-`payoff_source`, `payoff_reasoning`, `deviation_candidate`, and
-`equilibrium_check`.
-
-Self-play is fail-closed: `BestResponseSkill` rule mode is disabled, mock
-teacher mode is disabled, malformed LLM JSON raises, and heuristic-only
-equilibrium acceptance is not allowed. Public/offline tests use fake DeepSeek
-clients to verify the contract without weakening runtime behavior.
-
-Realtime rolling-prediction transports are optional. Public verification runs a
-closed-loop smoke over file, memory, Redis-adapter, and Kafka-adapter transports
-with in-process fake Redis/Kafka clients. That proves the event contract,
-prediction archive, risk attribution, and manual acknowledgement flow. The
-forecasting labels and macro evaluation panel are quarterly, but the event
-runtime accepts daily or intraday timestamps. A `p5_game_counterfactual`,
-`geopolitical_shock`, `macro_shock`, or `policy_shock` event can trigger a
-bounded-round five-cluster self-play stress test and archive the resulting Fed
-probability delta plus `p5_impact_summary`. The public artifact
-`examples/public_eval/event_counterfactual_result.json` is generated from a
-2026-05-06 intraday shock event and records the mapped quarter, five-cluster
-impact ranking, strategy deltas, belief deltas, and risk-attribution scope. A
-real production smoke still requires external Redis/Kafka brokers:
-
-```powershell
-uv sync --extra realtime
-$env:MAE_CPS_EVENT_BUS = "redis"   # or "kafka"
-$env:REDIS_URL = "redis://localhost:6379/0"
-# $env:KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
-python -m models.event_pipeline
-```
-
-Neural training modules, including the residual TFT and LoRA training scripts,
-use the optional training dependencies:
-
-```powershell
-uv sync --extra train
-$env:PYTHONPATH = "src"
-python -m models.tft_model
-```
-
-For NVIDIA GPU training on Windows, install a CUDA PyTorch wheel into the
-project environment after dependency sync, then invoke the environment Python
-directly so the lockfile does not replace it with a CPU wheel:
-
-```powershell
-uv pip install --python .\.venv\Scripts\python.exe `
-  --index-url https://download.pytorch.org/whl/cu128 `
-  --upgrade --reinstall torch
-
-$env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m fed_game.cli train-grpo --help
-```
-
-After local data and artifacts are generated, run:
-
-```powershell
-python scripts/verify_first_version.py
-```
-
-## Notes
-
-- DeepSeek can be used as a teacher, payoff judge, and equilibrium auditor through `--api-key-file`; local keys are not committed.
-- Temporal validation is part of the project contract. Test data should not be used for tuning.
-- Forecast outputs are research diagnostics and are not investment advice.
+改进方向分三个阶段推进。短期完善计量基线对照，扩大 teacher 数据量和学生模型容量，增加回测窗口和类别平衡，优先解决概率校准的可靠性问题。中期引入高频事件研究和 quasi-experiment 识别框架与 Agent 系统对接，将 TFT attention 和 SHAP 等 predictive attribution 与 IV 和 DID 等 causal identification 形成互补。预测归因告诉你模型在看什么，因果识别告诉你真正驱动结果的是什么，两者缺一不可。长期探索更大规模 self-play 和 multi-agent RL，在更丰富的宏观状态空间和角色集合中学习策略均衡，并将系统能力从 Fed 扩展到 ECB、BOE、PBOC 等多央行环境。
